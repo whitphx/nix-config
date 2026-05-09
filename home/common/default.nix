@@ -40,6 +40,7 @@
   programs.tmux.enable = true;
   programs.fzf.enable = true;
   programs.eza.enable = true;
+  programs.zoxide.enable = true;
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
