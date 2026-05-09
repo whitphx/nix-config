@@ -5,10 +5,63 @@
   programs.git = {
     enable = true;
     lfs.enable = true;
-    settings.user = {
-      name = lib.mkDefault "Yuichiro Tachibana (Tsuchiya)";
-      email = lib.mkDefault "t.yic.yt@gmail.com";
+
+    settings = {
+      user = {
+        name = lib.mkDefault "Yuichiro Tachibana (Tsuchiya)";
+        email = lib.mkDefault "t.yic.yt@gmail.com";
+      };
+
+      core.editor = "vi";
+
+      init = {
+        templatedir = "~/.git_template";
+        defaultBranch = "main";
+      };
+
+      push = {
+        default = "simple";
+        autoSetupRemote = true;
+      };
+
+      ghq.root = [ "~/go/src" "~/ghq" ];
+
+      credential = {
+        "https://dev.azure.com".useHttpPath = true;
+        "https://huggingface.co".provider = "generic";
+      };
+
+      sendemail = {
+        smtpServer = "smtp.gmail.com";
+        smtpServerPort = 587;
+        smtpEncryption = "tls";
+        smtpUser = "t.yic.yt@gmail.com";
+      };
+
+      alias = {
+        st = "status";
+        co = "checkout";
+        br = "branch";
+        # 'sw' is harder to type than 'si', so this aliases switch to 'si'.
+        si = "switch";
+        rs = "restore";
+        re = "reset";
+        rb = "rebase";
+        cm = "commit";
+        lg = "log --graph --branches --pretty=format:'%C(yellow)%h%C(cyan)%d%Creset %s %C(green)- %an, %cr%Creset'";
+        ll = ''log --pretty=format:"%C(yellow)%h%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --numstat'';
+        # Adapted from http://qiita.com/awakia/items/f14dc6310e469964a8f7
+        showpr = ''!f() { git log --merges --oneline --reverse --ancestry-path $1...master | grep 'Merge pull request #' | head -n 1; }; f'';
+        del-merged-branches = ''!f() { git checkout $1; git branch --merged | egrep -v '^\\*|master|develop|release*' | xargs git branch -d; }; f'';
+      };
     };
+
+    ignores = [
+      "*~"
+      ".DS_Store"
+      ".envrc"
+      "**/.claude/settings.local.json"
+    ];
   };
 
   programs.zsh = {
