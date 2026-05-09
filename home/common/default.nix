@@ -33,9 +33,34 @@
         file = "share/fzf-tab/fzf-tab.plugin.zsh";
       }
     ];
+
+    initExtra = ''
+      # Fuzzy-pick a ghq-managed repo and cd into it.
+      gl() {
+        local repo
+        repo=$(ghq list --full-path | fzf --layout=reverse --preview "cat {}/README.*")
+        [[ -n "$repo" ]] && cd "$repo"
+      }
+
+      # Aikido Safe Chain wraps npm/yarn/pnpm to block known-malicious
+      # packages. Its init script is laid down by safe-chain's own
+      # installer (outside of this Nix config); source it if present.
+      [[ -f ~/.safe-chain/scripts/init-zsh.zsh ]] && source ~/.safe-chain/scripts/init-zsh.zsh
+    '';
   };
 
-  programs.starship.enable = true;
+  programs.starship = {
+    enable = true;
+    settings = {
+      right_format = "$time";
+      time = {
+        disabled = false;
+        format = "[$time]($style)";
+        style = "bold yellow";
+        time_format = "%Y-%m-%d %H:%M:%S";
+      };
+    };
+  };
 
   programs.tmux = {
     enable = true;
