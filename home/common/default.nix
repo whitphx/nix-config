@@ -156,5 +156,8 @@
     pwgen
     wget
     rbw
+
+    (llm-agents.claude-code.override { disableTelemetry = false; })
+    llm-agents.codex
   ];
 }

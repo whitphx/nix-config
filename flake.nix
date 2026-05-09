@@ -1,6 +1,11 @@
 {
   description = "tsuchiya's Nix configuration";
 
+  nixConfig = {
+    extra-substituters = [ "https://cache.numtide.com" ];
+    extra-trusted-public-keys = [ "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=" ];
+  };
+
   inputs = {
     self.submodules = true;
 
@@ -20,6 +25,11 @@
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Numtide's curated AI/coding-agent flake. Intentionally NOT
+    # following our nixpkgs — the project's binary cache is keyed on
+    # its own pinned nixpkgs, and overriding it would defeat the cache.
+    llm-agents.url = "github:numtide/llm-agents.nix";
   };
 
   outputs = inputs@{ self, ... }:

@@ -5,6 +5,7 @@ let
   mkPkgs = system: import nixpkgs {
     inherit system;
     config.allowUnfree = true;
+    overlays = [ inputs.llm-agents.overlays.default ];
   };
 in
 {
