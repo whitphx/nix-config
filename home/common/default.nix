@@ -144,6 +144,7 @@
     enable = true;
     nix-direnv.enable = true;
   };
+  programs.mise.enable = true;
 
   home.packages = with pkgs; [
     ghq
@@ -156,6 +157,8 @@
     pwgen
     wget
     rbw
+
+    uv
 
     (llm-agents.claude-code.override { disableTelemetry = false; })
     llm-agents.codex
