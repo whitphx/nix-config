@@ -40,6 +40,7 @@ in
           home-manager = {
             useGlobalPkgs = true;
             useUserPackages = true;
+            backupFileExtension = "backup";
             users.${meta.username} = {
               imports = [
                 ../home/common
