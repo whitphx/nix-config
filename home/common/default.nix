@@ -37,7 +37,106 @@
 
   programs.starship.enable = true;
 
-  programs.tmux.enable = true;
+  programs.tmux = {
+    enable = true;
+
+    prefix = lib.mkDefault "C-o";
+    baseIndex = 1;
+    escapeTime = 0;
+    mouse = true;
+    terminal = "tmux-256color";
+
+    plugins = with pkgs.tmuxPlugins; [
+      sensible
+      battery
+      online-status
+      prefix-highlight
+      resurrect
+      {
+        plugin = continuum;
+        extraConfig = "set -g @continuum-restore 'on'";
+      }
+    ];
+
+    extraConfig = ''
+      bind-key c new-window -a
+
+      set -g focus-events on
+      set-option -g renumber-windows on
+      setw -g pane-base-index 1
+
+      bind r source-file ~/.config/tmux/tmux.conf \; display "Reloaded!"
+
+      bind 3 split-window -h -c "#{pane_current_path}"
+      bind 2 split-window -v -c "#{pane_current_path}"
+
+      bind-key -n C-S-Left  swap-window -t -1\; select-window -t -1
+      bind-key -n C-S-Right swap-window -t +1\; select-window -t +1
+
+      # True color (RGB) — depends on the outer terminal supporting it
+      set -as terminal-features ",*:RGB"
+
+      # Synchronized output to suppress flicker / tearing
+      set -as terminal-features ",tmux-256color:sync"
+
+      # Let inner programs forward their own escape sequences (e.g. OSC 52 from a nested shell)
+      set -g allow-passthrough on
+
+      # OSC 52 clipboard: tmux forwards copies to the outer terminal,
+      # which lands them in the system clipboard. Works through SSH so
+      # nested-tmux copy still reaches the local Mac clipboard.
+      set -s set-clipboard on
+      set -as terminal-features ",*:clipboard"
+
+      set -g default-shell ${pkgs.zsh}/bin/zsh
+
+      setw -g status-style fg=colour255,bg=colour234
+      setw -g window-status-style fg=cyan,bg=default,dim
+      setw -g window-status-current-style fg=white,bright,bg=colour170
+      set -g pane-border-style fg=colour111,bg=colour236
+      set -g pane-active-border-style fg=colour227,bg=colour240
+      set -g message-style fg=white,bg=black,bright
+
+      set -g status-left-length 40
+      set -g status-left "#[fg=yellow]W-#I #[fg=cyan]P-#P"
+      set -g @online_icon "🛜"
+      set -g @offline_icon "💔"
+      set -g status-right '#{prefix_highlight}#[fg=colour59, bg=colour234]#[fg=brightwhite, bg=colour59] #{battery_icon} #{battery_percentage} #{online_status}#[fg=colour234, bg=colour59] #[fg=colour59, bg=colour234]#[fg=brightwhite, bg=colour59] %Y-%m-%d(%a) %H:%M '
+      set -g status-interval 10
+      set -g status-justify centre
+      setw -g monitor-activity on
+      set -g visual-activity off
+      set -g status-position top
+
+      bind-key -T copy-mode             C-w               send-keys -X copy-selection-and-cancel \; display "Copied"
+      bind-key -T copy-mode             MouseDragEnd1Pane send-keys -X copy-selection-and-cancel \; display "Copied"
+
+      # SSH overrides — kept at the end of extraConfig so the
+      # conditional values win over the unconditional defaults above.
+      # When tmux is started from an SSH session, swap the prefix and
+      # restyle the status bar so this session doesn't collide with —
+      # or look identical to — an outer tmux on the originating
+      # machine.
+      if-shell '[ -n "$SSH_CONNECTION" ] || [ -n "$SSH_TTY" ]' {
+        set -g prefix C-q
+        unbind C-o
+        bind-key C-q send-prefix
+
+        set -g status-style fg=colour255,bg=colour52
+        set -g status-left " 🌐 #h  W-#I P-#P "
+        set -g status-right "#{prefix_highlight} #{battery_icon} #{battery_percentage} #{online_status} %Y-%m-%d(%a) %H:%M "
+
+        set -g pane-border-style fg=colour167,bg=colour52
+        set -g pane-active-border-style fg=colour209,bg=colour88
+      }
+    '' + lib.optionalString pkgs.stdenv.isDarwin ''
+
+      # macOS-only paste binding. On Linux there is no portable
+      # equivalent of pbpaste, so we rely on the terminal's own paste
+      # (Cmd-V / Ctrl-Shift-V), which goes through OSC 52.
+      bind C-y run "pbpaste | tmux load-buffer - && tmux paste-buffer"
+    '';
+  };
   programs.fzf.enable = true;
   programs.eza.enable = true;
   programs.zoxide.enable = true;
