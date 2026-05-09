@@ -2,6 +2,8 @@
   description = "tsuchiya's Nix configuration";
 
   inputs = {
+    self.submodules = true;
+
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
