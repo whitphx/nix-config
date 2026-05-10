@@ -236,6 +236,13 @@
     mkdir -p "$HOME/.local/share/mamba"
   '';
 
+  # Suppress the "(envname)" PS1 prefix that micromamba activate
+  # injects. Starship's [conda] module already surfaces the active
+  # env in the prompt, so the prefix is just visual noise.
+  home.file.".mambarc".text = ''
+    changeps1: false
+  '';
+
   home.packages = with pkgs; [
     ghq
     gibo
