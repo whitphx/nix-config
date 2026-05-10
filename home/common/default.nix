@@ -112,12 +112,10 @@
   programs.starship = {
     enable = true;
     settings = {
-      right_format = "$time";
-      time = {
-        disabled = false;
-        format = "[$time]($style)";
-        style = "bold yellow";
-        time_format = "%Y-%m-%d %H:%M:%S";
+      custom.datetime = {
+        command = ''date +"%Y-%m-%d %H:%M:%S"'';
+        when = "true";
+        format = "[$output](bold yellow) ";
       };
     };
   };
