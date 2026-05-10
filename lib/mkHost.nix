@@ -2,11 +2,12 @@
 let
   inherit (inputs) nixpkgs home-manager nix-darwin;
 
-  mkPkgs = system: import nixpkgs {
-    inherit system;
+  nixpkgsConfig = {
     config.allowUnfree = true;
     overlays = [ inputs.llm-agents.overlays.default ];
   };
+
+  mkPkgs = system: import nixpkgs ({ inherit system; } // nixpkgsConfig);
 in
 {
   mkLinuxHost = hostDir:
@@ -34,6 +35,12 @@ in
     nix-darwin.lib.darwinSystem {
       system = meta.system;
       modules = [
+        {
+          nixpkgs = nixpkgsConfig;
+          # Determinate Nix manages the Nix installation itself; let
+          # nix-darwin stay out of `nix.*` to avoid the two clashing.
+          nix.enable = false;
+        }
         home-manager.darwinModules.home-manager
         {
           users.users.${meta.username}.home = meta.homeDirectory;
