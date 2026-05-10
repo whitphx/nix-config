@@ -184,7 +184,7 @@
       set -g status-left "#[fg=yellow]W-#I #[fg=cyan]P-#P"
       set -g @online_icon "🛜"
       set -g @offline_icon "💔"
-      set -g status-right '#{prefix_highlight}#[fg=colour59, bg=colour234]#[fg=brightwhite, bg=colour59] #{battery_icon} #{battery_percentage} #{online_status}#[fg=colour234, bg=colour59] #[fg=colour59, bg=colour234]#[fg=brightwhite, bg=colour59] %Y-%m-%d(%a) %H:%M '
+      set -g status-right '#{prefix_highlight}#[fg=colour59, bg=colour234]#[fg=brightwhite, bg=colour59] #{battery_icon} #{battery_percentage} #{online_status}#[fg=colour234, bg=colour59]#[fg=colour59, bg=colour234]#[fg=brightwhite, bg=colour59] %Y-%m-%d(%a) %H:%M '
       set -g status-interval 10
       set -g status-justify centre
       setw -g monitor-activity on
