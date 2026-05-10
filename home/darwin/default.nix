@@ -9,7 +9,10 @@
 
   programs.git.settings.credential = {
     helper = [ "manager" ];
-    "https://github.com".provider = "github";
+    "https://github.com" = {
+      provider = "github";
+      username = "whitphx";
+    };
   };
 
   # Source Homebrew for HOMEBREW_PREFIX / MANPATH / INFOPATH, then push
