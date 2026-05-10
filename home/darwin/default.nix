@@ -2,11 +2,15 @@
 {
   home.packages = with pkgs; [
     coreutils
+    git-credential-manager
   ];
 
   programs.zsh.shellAliases.intelzsh = "arch -x86_64 zsh";
 
-  programs.git.settings.credential.helper = [ "osxkeychain" ];
+  programs.git.settings.credential = {
+    helper = [ "manager" ];
+    "https://github.com".provider = "github";
+  };
 
   # Source Homebrew for HOMEBREW_PREFIX / MANPATH / INFOPATH, then push
   # /opt/homebrew/{bin,sbin} to the back of $path so Nix-managed
