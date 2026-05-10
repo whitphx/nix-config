@@ -214,6 +214,16 @@
         set -g pane-border-style fg=colour167,bg=colour52
         set -g pane-active-border-style fg=colour209,bg=colour88
       }
+
+      # battery / online-status / prefix-highlight rewrite the active
+      # `status-right` at load time to substitute `#{battery_icon}` etc.
+      # with `#(/path/to/script.sh)`. HM's `programs.tmux.plugins` emits
+      # their `run-shell` lines BEFORE this `extraConfig`, so when they
+      # fired the status-right we set above didn't exist yet. Re-run
+      # them here so the substitution actually takes effect.
+      run-shell ${pkgs.tmuxPlugins.battery}/share/tmux-plugins/battery/battery.tmux
+      run-shell ${pkgs.tmuxPlugins.online-status}/share/tmux-plugins/online-status/online_status.tmux
+      run-shell ${pkgs.tmuxPlugins.prefix-highlight}/share/tmux-plugins/prefix-highlight/prefix_highlight.tmux
     '' + lib.optionalString pkgs.stdenv.isDarwin ''
 
       # macOS-only paste binding. On Linux there is no portable
