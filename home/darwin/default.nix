@@ -8,7 +8,10 @@
   programs.zsh.shellAliases.intelzsh = "arch -x86_64 zsh";
 
   programs.git.settings.credential = {
-    helper = [ "manager" ];
+    # Empty string resets the helper chain so nixpkgs' git system
+    # gitconfig (which sets `helper = osxkeychain` on darwin) doesn't
+    # win lookups before manager gets a turn.
+    helper = [ "" "manager" ];
     "https://github.com" = {
       provider = "github";
       username = "whitphx";
