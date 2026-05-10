@@ -229,6 +229,13 @@
   };
   programs.mise.enable = true;
 
+  # micromamba does not auto-create its root prefix when missing, so
+  # the first `micromamba env create` errors out on a fresh machine.
+  # Pre-create it once at activation time.
+  home.activation.createMambaRootPrefix = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    mkdir -p "$HOME/.local/share/mamba"
+  '';
+
   home.packages = with pkgs; [
     ghq
     gibo
