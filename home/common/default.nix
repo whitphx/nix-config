@@ -248,6 +248,7 @@
     gibo
     gitleaks
     jq
+    tree
     zsh-completions
     ffmpeg
     nkf
@@ -257,6 +258,9 @@
 
     uv
     micromamba
+
+    hackgen-font
+    hackgen-nf-font
 
     (llm-agents.claude-code.override { disableTelemetry = false; })
     llm-agents.codex
