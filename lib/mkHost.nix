@@ -41,9 +41,11 @@ in
           # nix-darwin stay out of `nix.*` to avoid the two clashing.
           nix.enable = false;
         }
+        ../system/darwin
         home-manager.darwinModules.home-manager
         {
           users.users.${meta.username}.home = meta.homeDirectory;
+          system.primaryUser = meta.username;
 
           home-manager = {
             useGlobalPkgs = true;
