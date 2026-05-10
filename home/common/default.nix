@@ -99,6 +99,13 @@
       # packages. Its init script is laid down by safe-chain's own
       # installer (outside of this Nix config); source it if present.
       [[ -f ~/.safe-chain/scripts/init-zsh.zsh ]] && source ~/.safe-chain/scripts/init-zsh.zsh
+
+      # micromamba: drop-in for `conda activate` style env management.
+      if command -v micromamba >/dev/null 2>&1; then
+        export MAMBA_EXE="$(command -v micromamba)"
+        export MAMBA_ROOT_PREFIX="$HOME/.local/share/mamba"
+        eval "$(micromamba shell hook --shell zsh)"
+      fi
     '';
   };
 
@@ -237,6 +244,7 @@
     rbw
 
     uv
+    micromamba
 
     (llm-agents.claude-code.override { disableTelemetry = false; })
     llm-agents.codex
