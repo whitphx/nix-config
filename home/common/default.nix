@@ -201,9 +201,11 @@
       # or look identical to — an outer tmux on the originating
       # machine.
       if-shell '[ -n "$SSH_CONNECTION" ] || [ -n "$SSH_TTY" ]' {
-        set -g prefix C-q
-        unbind C-o
-        bind-key C-q send-prefix
+        set -g prefix C-u
+        bind-key C-u send-prefix
+        # Explicitly neutralise C-o so the default `prefix + C-o =
+        # rotate-window` does not leak into the SSH override.
+        bind-key C-o run-shell "true"
 
         set -g status-style fg=colour255,bg=colour52
         set -g status-left " 🌐 #h  W-#I P-#P "
