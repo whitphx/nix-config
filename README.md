@@ -61,7 +61,15 @@ Two flavors of fresh install: macOS via nix-darwin, Linux via Home Manager stand
 
 5. **(Optional)** Set up secret stores per [Secret management](#secret-management) below. If your host's `home.nix` is empty, you can defer this until the first secret lands.
 
-6. **First activation** (`darwin-rebuild` doesn't exist on PATH yet — it ships *via* the activation):
+6. **Load your SSH key into the agent** before the first activation. Nix evaluates the flake with `self.submodules = true`, so even under `sudo` it fetches `private/` from GitHub over SSH; if the key isn't already in the running agent — only on disk — the `sudo`'d fetch fails even when plain `git pull` as you works fine.
+
+    ```bash
+    ssh-add ~/.ssh/id_ed25519
+    # Or, to persist the key across shells via macOS Keychain:
+    # ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+    ```
+
+7. **First activation** (`darwin-rebuild` doesn't exist on PATH yet — it ships *via* the activation):
 
     ```bash
     sudo nix run nix-darwin -- switch --flake .#<host-nickname>
@@ -69,7 +77,7 @@ Two flavors of fresh install: macOS via nix-darwin, Linux via Home Manager stand
 
     Open a new shell afterward so the activated PATH (Nix profile, HM-managed binaries, `darwin-rebuild`) is picked up.
 
-7. **Subsequent rebuilds**:
+8. **Subsequent rebuilds**:
 
     ```bash
     sudo darwin-rebuild switch --flake .#<host-nickname>
