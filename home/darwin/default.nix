@@ -21,8 +21,12 @@
   # Source Homebrew for HOMEBREW_PREFIX / MANPATH / INFOPATH, then push
   # /opt/homebrew/{bin,sbin} to the back of $path so Nix-managed
   # binaries win lookups (`brew shellenv` prepends them by default).
+  # Existence-checked so the shell still boots on hosts where Homebrew
+  # isn't installed (e.g. a fresh macOS).
   programs.zsh.profileExtra = ''
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-    path=("''${(@)path:#/opt/homebrew/(bin|sbin)}" /opt/homebrew/bin /opt/homebrew/sbin)
+    if [ -x /opt/homebrew/bin/brew ]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+      path=("''${(@)path:#/opt/homebrew/(bin|sbin)}" /opt/homebrew/bin /opt/homebrew/sbin)
+    fi
   '';
 }
