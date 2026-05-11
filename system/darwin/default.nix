@@ -52,6 +52,17 @@
       # both wired and Bluetooth variants; both need the override).
       "com.apple.AppleMultitouchTrackpad".ForceSuppressed = 0;
       "com.apple.driver.AppleBluetoothMultitouch.trackpad".ForceSuppressed = 0;
+
+      # iTerm2: read prefs from the Nix-managed plist symlinked into
+      # ~/Library/Application Support/iterm2-prefs/ by home-manager.
+      # NoSync* suppresses iTerm2's "your prefs changed, save?" alert
+      # on quit since the folder is read-only (Nix store).
+      "com.googlecode.iterm2" = {
+        LoadPrefsFromCustomFolder = true;
+        PrefsCustomFolder = "~/Library/Application Support/iterm2-prefs";
+        NoSyncNeverRemindPrefsChangesLostForFile = true;
+        NoSyncNeverRemindPrefsChangesLostForFile_selection = 0;
+      };
     };
   };
 }
