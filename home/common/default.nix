@@ -88,6 +88,14 @@
     ];
 
     initContent = ''
+      # Auto-attach (or create) a tmux session for new interactive
+      # shells. `exec` replaces the shell so exiting tmux closes the
+      # terminal. Escape hatch: `NO_AUTO_TMUX=1 zsh` skips the launch
+      # for one-off shells that need to stay bare.
+      if [[ -z "$TMUX" ]] && [[ -z "$NO_AUTO_TMUX" ]] && command -v tmux >/dev/null; then
+        exec tmux new-session -A -s main
+      fi
+
       # Fuzzy-pick a ghq-managed repo and cd into it.
       gl() {
         local repo
