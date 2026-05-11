@@ -87,7 +87,7 @@
       }
     ];
 
-    initExtra = ''
+    initContent = ''
       # Fuzzy-pick a ghq-managed repo and cd into it.
       gl() {
         local repo
