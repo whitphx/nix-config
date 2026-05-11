@@ -1,13 +1,139 @@
 # nix-config
 
-Multi-platform Nix + Home Manager configuration for macOS (nix-darwin + Home Manager) and Linux (Home Manager standalone).
+Multi-platform Nix + Home Manager configuration for **macOS** (nix-darwin + Home Manager) and **Linux** (Home Manager standalone, run inside a rootless chroot via [`nix-user-chroot`](https://github.com/nix-community/nix-user-chroot) for hosts where you don't have root).
 
 ## Repository layout
 
 - `flake.nix` — flake entry point. Discovers hosts dynamically from `private/hosts/`, so no host names appear in this public repository.
 - `lib/mkHost.nix` — helpers that wire host metadata + modules into Home Manager / nix-darwin configurations.
 - `home/{common,linux,darwin}/` — Home Manager modules grouped by platform. Public defaults live here.
+- `system/darwin/` — nix-darwin system-level modules (Dock, Finder, keyboard remap, Control Center toggles, etc.). macOS only.
 - `private/` — Git submodule pointing to a separate private repository. Holds per-host configurations and encrypted secrets. Not part of this public repo.
+
+## Bootstrapping
+
+Two flavors of fresh install: macOS via nix-darwin, Linux via Home Manager standalone. Both share the secret-store setup, which is described separately under [Secret management](#secret-management).
+
+### macOS
+
+1. **Install the Xcode Command Line Tools** (provides `git`, `clang`, etc. needed by Nix builds):
+
+    ```bash
+    xcode-select --install
+    ```
+
+2. **Install Determinate Nix** — follow the upstream [installation instructions](https://github.com/DeterminateSystems/nix-installer#install-nix). Open a new shell when it's done so `/nix/var/nix/profiles/default/bin` is on PATH.
+
+3. **Clone with submodules**:
+
+    ```bash
+    git clone --recurse-submodules git@github.com:whitphx/nix-config.git
+    cd nix-config
+    ```
+
+4. **Define a host** under `private/hosts/<host-nickname>/`. The directory name is what you'll pass to `--flake .#<nickname>`:
+
+    `default.nix`:
+
+    ```nix
+    {
+      kind = "darwin";
+      system = "aarch64-darwin";  # or x86_64-darwin on Intel
+      username = "<your-mac-user>";
+      homeDirectory = "/Users/<your-mac-user>";
+    }
+    ```
+
+    `home.nix` (start empty; layer host-specific overrides later):
+
+    ```nix
+    { ... }: { }
+    ```
+
+    Commit + push these new files in the `private/` submodule, then stage the bump in the parent repo. Nix's flake evaluation fetches the submodule from its remote (not the working tree alone), so the new host directory must be reachable on origin before the first switch:
+
+    ```bash
+    git -C private checkout main && git -C private add hosts/<host-nickname>
+    git -C private commit -m "Add <host-nickname> host"
+    git -C private push
+    git add private  # stage the new submodule pointer; commit when convenient
+    ```
+
+5. **(Optional)** Set up secret stores per [Secret management](#secret-management) below. If your host's `home.nix` is empty, you can defer this until the first secret lands.
+
+6. **First activation** (`darwin-rebuild` doesn't exist on PATH yet — it ships *via* the activation):
+
+    ```bash
+    sudo nix run nix-darwin -- switch --flake .#<host-nickname>
+    ```
+
+    Open a new shell afterward so the activated PATH (Nix profile, HM-managed binaries, `darwin-rebuild`) is picked up.
+
+7. **Subsequent rebuilds**:
+
+    ```bash
+    sudo darwin-rebuild switch --flake .#<host-nickname>
+    ```
+
+### Linux (rootless via `nix-user-chroot`)
+
+These steps target a host where you don't have root and so can't install Nix the normal way. [`nix-user-chroot`](https://github.com/nix-community/nix-user-chroot) uses user namespaces to bind-mount a user-owned directory as `/nix`, letting Nix run with no system-level changes.
+
+1. **Install `nix-user-chroot` and Nix inside it** — follow upstream's [installation instructions](https://github.com/nix-community/nix-user-chroot#installation). Use single-user mode when installing Nix; the daemon variant needs real root.
+
+2. **Enter the chroot** — required for every step below and for any future Nix-related work on this host:
+
+    ```bash
+    nix-user-chroot ~/.nix bash
+    ```
+
+    Consider aliasing.
+
+3. **Enable flakes** in `~/.config/nix/nix.conf` (inside the chroot):
+
+    ```
+    experimental-features = nix-command flakes
+    ```
+
+4. **Clone with submodules** (inside the chroot):
+
+    ```bash
+    git clone --recurse-submodules git@github.com:whitphx/nix-config.git
+    cd nix-config
+    ```
+
+5. **Define a host** under `private/hosts/<host-nickname>/`.
+
+    `default.nix`:
+
+    ```nix
+    {
+      kind = "linux";
+      system = "x86_64-linux";  # or aarch64-linux
+      username = "<your-user>";
+      homeDirectory = "<your-home-dir>";  # e.g. /home/you
+    }
+    ```
+
+    `home.nix`: `{ ... }: { }`
+
+    Commit + push the submodule and bump the pointer in the parent — same flow as macOS step 4.
+
+6. **(Optional)** Secret-store setup per [Secret management](#secret-management).
+
+7. **First activation**:
+
+    ```bash
+    nix run home-manager/master -- switch --flake .#<your-user>@<host-nickname>
+    ```
+
+8. **Subsequent rebuilds**:
+
+    ```bash
+    home-manager switch --flake .#<your-user>@<host-nickname>
+    ```
+
+    Remember: each new login shell starts outside the chroot — re-enter with `nix-user-chroot ~/.nix bash` (or your alias) before running `home-manager`.
 
 ## Secret management
 
@@ -24,6 +150,21 @@ This repository is public, but the configurations it produces depend on values t
 - **[`agenix`](https://github.com/ryantm/agenix)** — encrypts secrets in the private submodule with `age`, decrypts them at Home Manager activation time. Used for secrets that must materialize as files (e.g., `~/.npmrc`, `~/.ssh/config` snippets).
 - **[`rbw`](https://github.com/doy/rbw)** — Rust client for Bitwarden, faster and friendlier than the official `bw` CLI. Used by shell scripts and `.envrc` to fetch secrets at runtime.
 - **[`direnv`](https://direnv.net/) + [`nix-direnv`](https://github.com/nix-community/nix-direnv)** — loads project-specific tooling (via `use flake`) and secrets when entering a directory.
+
+### Setup on a fresh host
+
+Run once per machine, before any `home.nix` that references encrypted/runtime secrets is activated:
+
+1. **Configure `rbw`**:
+
+    ```bash
+    rbw config set email <bitwarden-email>
+    rbw login
+    ```
+
+2. **Set up the host's `age` identity** (only if your `home.nix` uses agenix-encrypted files):
+    - **First-time setup**: convert `~/.ssh/id_ed25519` into an age identity with [`ssh-to-age`](https://github.com/Mic92/ssh-to-age).
+    - **Recovery**: fetch the saved recovery age private key from Bitwarden and place it where agenix expects it.
 
 ### `.envrc` policy
 
@@ -43,15 +184,6 @@ dotenv $HOME/.config/agenix/myproject.env
 ```
 
 This keeps `.envrc` safe to commit alongside project source while still picking up the secrets it needs.
-
-### Bootstrapping a new machine
-
-1. Clone with submodules: `git clone --recurse-submodules <url>`.
-2. Configure `rbw`: `rbw config set email <bitwarden-email>`, then `rbw login`.
-3. Set up the host's `age` identity:
-   - First-time setup: convert `~/.ssh/id_ed25519` into an `age` identity via [`ssh-to-age`](https://github.com/Mic92/ssh-to-age).
-   - Recovery: fetch the saved recovery `age` private key from Bitwarden and place it where `agenix` expects it.
-4. Run `home-manager switch --flake .#<user>@<host>`.
 
 ## Per-host overrides
 
