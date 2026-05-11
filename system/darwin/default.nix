@@ -32,12 +32,21 @@
       Bluetooth = true;
     };
 
+    # macOS Sonoma+ ignores `com.apple.menuextra.clock.DateFormat` in
+    # favor of these structured toggles; an explicit ISO-style format
+    # string is no longer possible in the native menu bar clock.
+    menuExtraClock = {
+      Show24Hour = true;
+      ShowAMPM = false;
+      ShowDate = 1;  # 0 = when space allows, 1 = always, 2 = never
+      ShowDayOfWeek = true;
+      ShowSeconds = true;
+    };
+
     # Settings without typed options in nix-darwin land here. Each
     # key/value pair maps to a `defaults write <domain> <key> <value>`.
     CustomUserPreferences = {
       "com.apple.desktopservices".DSDontWriteNetworkStores = true;
-
-      "com.apple.menuextra.clock".DateFormat = "yyyy-MM-dd (EEE)  H:mm:ss";
 
       # Force-click + haptic feedback (the trackpad domain ships in
       # both wired and Bluetooth variants; both need the override).
