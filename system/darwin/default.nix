@@ -22,6 +22,11 @@
 
     trackpad.Clicking = true;
 
+    controlcenter = {
+      BatteryShowPercentage = true;
+      Bluetooth = true;
+    };
+
     # Settings without typed options in nix-darwin land here. Each
     # key/value pair maps to a `defaults write <domain> <key> <value>`.
     CustomUserPreferences = {
