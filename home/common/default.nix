@@ -239,7 +239,15 @@
     enable = true;
     nix-direnv.enable = true;
   };
-  programs.mise.enable = true;
+  programs.mise = {
+    enable = true;
+    globalConfig = {
+      tools.node = "22";
+      # Read legacy version files (.nvmrc, .terraform-version, …) the way
+      # nvm/tfenv/asdf did, so existing repos don't need a .mise.toml.
+      settings.idiomatic_version_file_enable_tools = [ "node" ];
+    };
+  };
 
   # micromamba does not auto-create its root prefix when missing, so
   # the first `micromamba env create` errors out on a fresh machine.
@@ -270,6 +278,16 @@
 
     uv
     micromamba
+
+    actionlint
+    pinact
+    chezmoi
+    cmake
+    emacs
+    gh
+    lefthook
+    miniserve
+    protobuf
 
     hackgen-font
     hackgen-nf-font
