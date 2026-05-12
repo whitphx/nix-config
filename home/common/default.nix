@@ -184,13 +184,13 @@
 
       setw -g status-style fg=colour255,bg=colour234
       setw -g window-status-style fg=cyan,bg=default,dim
-      setw -g window-status-current-style fg=white,bright,bg=colour170
+      setw -g window-status-current-style fg=white,bold,bg=colour170
       set -g pane-border-style fg=colour111,bg=colour236
       set -g pane-active-border-style fg=colour227,bg=colour240
-      set -g message-style fg=white,bg=black,bright
+      set -g message-style fg=white,bg=black,bold
 
-      set -g status-left-length 40
-      set -g status-left "#[fg=yellow]W-#I #[fg=cyan]P-#P"
+      set -g status-left-length 80
+      set -g status-left "#[fg=yellow]W-#I #[fg=cyan]P-#P #[fg=green]#{=40:pane_title}"
       set -g @online_icon "🛜"
       set -g @offline_icon "💔"
       set -g status-right '#{prefix_highlight}#[fg=colour59, bg=colour234]#[fg=brightwhite, bg=colour59] #{battery_icon} #{battery_percentage} #{online_status}#[fg=colour234, bg=colour59]#[fg=colour59, bg=colour234]#[fg=brightwhite, bg=colour59] %Y-%m-%d(%a) %H:%M '
@@ -217,7 +217,7 @@
         bind-key C-o run-shell "true"
 
         set -g status-style fg=colour255,bg=colour52
-        set -g status-left " 🌐 #h  W-#I P-#P "
+        set -g status-left " 🌐 #h  W-#I P-#P #[fg=green]#{=40:pane_title}"
         set -g status-right "#{prefix_highlight} #{battery_icon} #{battery_percentage} #{online_status} %Y-%m-%d(%a) %H:%M "
 
         set -g pane-border-style fg=colour167,bg=colour52
