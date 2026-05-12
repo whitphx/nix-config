@@ -1,4 +1,7 @@
-{ ... }:
+{ config, ... }:
+let
+  primaryUserHome = config.users.users.${config.system.primaryUser}.home;
+in
 {
   system.keyboard = {
     enableKeyMapping = true;
@@ -59,7 +62,7 @@
       # on quit since the folder is read-only (Nix store).
       "com.googlecode.iterm2" = {
         LoadPrefsFromCustomFolder = true;
-        PrefsCustomFolder = "~/Library/Application Support/iterm2-prefs";
+        PrefsCustomFolder = "${primaryUserHome}/Library/Application Support/iterm2-prefs";
         NoSyncNeverRemindPrefsChangesLostForFile = true;
         NoSyncNeverRemindPrefsChangesLostForFile_selection = 0;
       };
