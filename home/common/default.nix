@@ -151,6 +151,7 @@
 
     extraConfig = ''
       bind-key c new-window -a
+      bind-key C command-prompt -p "New session name:" "new-session -s '%%'"
 
       set -g focus-events on
       set-option -g renumber-windows on
