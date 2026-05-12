@@ -287,6 +287,7 @@
 
     uv
     micromamba
+    pnpm
 
     actionlint
     pinact
