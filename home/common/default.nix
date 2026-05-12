@@ -284,6 +284,7 @@
     pwgen
     wget
     rbw
+    bitwarden-cli
 
     uv
     micromamba
