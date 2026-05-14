@@ -157,6 +157,12 @@
       set-option -g renumber-windows on
       setw -g pane-base-index 1
 
+      # Closing the last window of a session normally detaches the
+      # client; with `exec tmux` in shell init that exits the terminal.
+      # Switch to the most recently active surviving session instead;
+      # only fall back to detach when no other sessions exist.
+      set -g detach-on-destroy off
+
       bind r source-file ~/.config/tmux/tmux.conf \; display "Reloaded!"
 
       bind 3 split-window -h -c "#{pane_current_path}"
