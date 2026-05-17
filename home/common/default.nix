@@ -88,6 +88,10 @@
     ];
 
     initContent = ''
+      # Treat `/` as a word boundary so M-Bksp / M-f / M-b stop at each
+      # path component instead of swallowing the whole path.
+      WORDCHARS=''${WORDCHARS//\//}
+
       # Auto-attach (or create) a tmux session for new interactive
       # shells. `exec` replaces the shell so exiting tmux closes the
       # terminal. Escape hatch: `NO_AUTO_TMUX=1 zsh` skips the launch
