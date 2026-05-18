@@ -107,6 +107,9 @@
         [[ -n "$repo" ]] && cd "$repo"
       }
 
+      # `gw` worktree manager (see zsh/gw.zsh for the implementation).
+      source ${./zsh/gw.zsh}
+
       # Aikido Safe Chain wraps npm/yarn/pnpm to block known-malicious
       # packages. Its init script is laid down by safe-chain's own
       # installer (outside of this Nix config); source it if present.
