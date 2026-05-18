@@ -51,6 +51,11 @@
       addKeysToAgent = "yes";
       extraOptions.UseKeychain = "yes";
     };
+    # Scratchpad for ad-hoc / experimental hosts. Rendered as an `Include`
+    # at the top of the generated config, so entries here override the
+    # declarative matchBlocks below — graduate stable hosts into
+    # private/hosts/<name>/home.nix when they settle.
+    includes = [ "~/.ssh/config.local" ];
   };
 
   programs.git.settings.credential = {
