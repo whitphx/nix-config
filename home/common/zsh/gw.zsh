@@ -326,20 +326,25 @@ __gw_confirm_and_remove() {
   branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null)
   changes=$(git -C "$worktree_path" status --porcelain 2>/dev/null)
 
+  echo "Target worktree:"
+  echo "  Path:   $worktree_path"
+  echo "  Branch: ${branch:-<detached>}"
+
   if [[ -n "$changes" ]]; then
-    echo "Warning: Worktree has uncommitted changes:"
+    print -P "%F{yellow}%B⚠️  Warning: Worktree has uncommitted changes — they will be lost:%b%f"
     echo "$changes" | head -10
     local -a change_lines
     change_lines=("${(@f)changes}")
     if (( ${#change_lines[@]} > 10 )); then
       echo "  ... and more"
     fi
-    local confirm
-    read "confirm?Are you sure you want to remove this worktree? [y/N] "
-    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-      echo "Cancelled"
-      return
-    fi
+  fi
+
+  local confirm
+  read "confirm?Remove this worktree? [y/N] "
+  if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+    echo "Cancelled"
+    return
   fi
 
   echo "Removing worktree at: $worktree_path"
