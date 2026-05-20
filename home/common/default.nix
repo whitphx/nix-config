@@ -271,6 +271,13 @@
     };
   };
 
+  # Keep program messages in English even though the rest of the
+  # locale is ja_JP.UTF-8, so error output from sh / coreutils / git
+  # is greppable and matches upstream docs.
+  home.sessionVariables = {
+    LC_MESSAGES = "C";
+  };
+
   # micromamba does not auto-create its root prefix when missing, so
   # the first `micromamba env create` errors out on a fresh machine.
   # Pre-create it once at activation time.
