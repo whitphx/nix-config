@@ -6,12 +6,38 @@
   ];
 
   # iTerm2: vendor the whole prefs plist and let iTerm2 load it via
-  # its "Load preferences from a custom folder" feature. The symlink
-  # target lives in the read-only Nix store, so iTerm2 can't write
-  # changes back — UI edits are lost on quit. Edit the file in this
-  # repo and re-switch to update.
-  home.file."Library/Application Support/iterm2-prefs/com.googlecode.iterm2.plist".source =
-    ./files/iterm2/com.googlecode.iterm2.plist;
+  # its "Load preferences from a custom folder" feature.
+  #
+  # Installed as a regular file rather than a /nix/store symlink to
+  # avoid a race at boot: nix-darwin's activate-system LaunchDaemon
+  # runs concurrently with the GUI session, and sandboxed apps reading
+  # files under /nix/store during that window can transiently fail.
+  # When iTerm2 hits that, it surfaces "Missing or malformed setting
+  # file" and silently falls back to the default plist at
+  # ~/Library/Preferences/com.googlecode.iterm2.plist. A regular file
+  # in $HOME bypasses /nix/store entirely.
+  #
+  # Mode 444 keeps the "UI edits are lost on quit" property the
+  # readonly Nix store gave us. Edit the file in this repo and
+  # re-switch to update.
+  home.activation.installIterm2Prefs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    PREFS_DIR="$HOME/Library/Application Support/iterm2-prefs"
+    /bin/mkdir -p "$PREFS_DIR"
+    /bin/rm -f "$PREFS_DIR/com.googlecode.iterm2.plist"
+    /usr/bin/install -m444 ${./files/iterm2/com.googlecode.iterm2.plist} \
+      "$PREFS_DIR/com.googlecode.iterm2.plist"
+  '';
+
+  # The LoadPrefsFromCustomFolder / PrefsCustomFolder pair is what
+  # tells iTerm2 to read the vendored prefs above — they can only
+  # live in the standard plist, not in the custom folder itself.
+  # Without this, a wipe of ~/Library/Preferences/com.googlecode.iterm2.plist
+  # leaves iTerm2 with no pointer and it bootstraps a fresh default
+  # config. Re-asserting on every activation makes that self-healing.
+  home.activation.iterm2PrefsPointer = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    /usr/bin/defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool YES
+    /usr/bin/defaults write com.googlecode.iterm2 PrefsCustomFolder -string "$HOME/Library/Application Support/iterm2-prefs"
+  '';
 
   # Apple Terminal.app: no equivalent custom-folder feature, so import
   # the `ayu` profile dict via plutil and set it as the default. Idempotent
