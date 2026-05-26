@@ -116,6 +116,37 @@
       # terminal. Escape hatch: `NO_AUTO_TMUX=1 zsh` skips the launch
       # for one-off shells that need to stay bare.
       if [[ -z "$TMUX" ]] && [[ -z "$NO_AUTO_TMUX" ]] && command -v tmux >/dev/null; then
+        # Reconcile the running tmux server's loaded conf state
+        # against what's on disk. Two failure modes covered:
+        # - boot-race partial load: the conf parse halts before
+        #   reaching its last line (@loaded != "1"). The conf sets
+        #   @loaded on its last line as a parse-completion marker.
+        # - stale conf after darwin-rebuild switch: the rendered
+        #   conf has changed but the running server still holds
+        #   the previous version's settings. ~/.config/tmux/tmux.conf
+        #   is a symlink whose target changes to a new /nix/store
+        #   path whenever the conf content changes; that target is
+        #   the version identity. Stored in @conf-id by zsh below.
+        # When no server is running, start it explicitly so @conf-id
+        # can be set before any client attaches — that avoids a
+        # spurious re-source on the next shell after a clean boot.
+        local _expected=$(readlink ~/.config/tmux/tmux.conf 2>/dev/null)
+        if tmux info >/dev/null 2>&1; then
+          local _loaded=$(tmux show-options -gv @loaded 2>/dev/null)
+          local _conf_id=$(tmux show-options -gv @conf-id 2>/dev/null)
+          local _need=0
+          [[ "$_loaded" != "1" ]] && _need=1
+          [[ -n "$_expected" && "$_expected" != "$_conf_id" ]] && _need=1
+          if (( _need )); then
+            tmux source-file ~/.config/tmux/tmux.conf 2>/dev/null
+            [[ -n "$_expected" ]] && tmux set-option -g @conf-id "$_expected" 2>/dev/null
+          fi
+          unset _loaded _conf_id _need
+        else
+          tmux start-server
+          [[ -n "$_expected" ]] && tmux set-option -g @conf-id "$_expected" 2>/dev/null
+        fi
+        unset _expected
         exec tmux new-session -A -s main
       fi
 
@@ -271,6 +302,13 @@
       # equivalent of pbpaste, so we rely on the terminal's own paste
       # (Cmd-V / Ctrl-Shift-V), which goes through OSC 52.
       bind C-y run "pbpaste | tmux load-buffer - && tmux paste-buffer"
+    '' + ''
+
+      # Load-completed sentinel. zsh init probes this and re-sources
+      # the conf when it's missing — catches any halted load (boot-
+      # race, an earlier line erroring out, etc.) without depending
+      # on a specific option as the canary.
+      set -g @loaded "1"
     '';
   };
   programs.fzf.enable = true;
