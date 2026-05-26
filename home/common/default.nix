@@ -92,6 +92,25 @@
       # path component instead of swallowing the whole path.
       WORDCHARS=''${WORDCHARS//\//}
 
+      # $TMUX leaks when a GUI app is launched via `open -a` from a
+      # tmux-bound shell — the var propagates to the app, then to
+      # every child shell it spawns, even though those shells have no
+      # real tmux ancestor. Without this guard the auto-attach block
+      # below sees $TMUX set and skips, leaving a bare shell. Walk
+      # parent PIDs; if no tmux ancestor is found, the value is stale.
+      if [[ -n "$TMUX" ]]; then
+        local _pid=$PPID _in_tmux=0
+        while [[ "$_pid" -gt 1 ]]; do
+          case "$(ps -p "$_pid" -o comm= 2>/dev/null)" in
+            *tmux*) _in_tmux=1; break ;;
+          esac
+          _pid=$(ps -p "$_pid" -o ppid= 2>/dev/null | tr -d ' ')
+          [[ -z "$_pid" ]] && break
+        done
+        (( _in_tmux )) || unset TMUX TMUX_PANE
+        unset _pid _in_tmux
+      fi
+
       # Auto-attach (or create) a tmux session for new interactive
       # shells. `exec` replaces the shell so exiting tmux closes the
       # terminal. Escape hatch: `NO_AUTO_TMUX=1 zsh` skips the launch
