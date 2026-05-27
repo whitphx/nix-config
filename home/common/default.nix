@@ -321,7 +321,10 @@
   programs.mise = {
     enable = true;
     globalConfig = {
-      tools.node = "22";
+      tools = {
+        node = "22";
+        pnpm = "10";
+      };
       # Read legacy version files (.nvmrc, .terraform-version, …) the way
       # nvm/tfenv/asdf did, so existing repos don't need a .mise.toml.
       settings.idiomatic_version_file_enable_tools = [ "node" ];
@@ -365,7 +368,6 @@
 
     uv
     micromamba
-    pnpm
 
     actionlint
     pinact
