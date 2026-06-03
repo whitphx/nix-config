@@ -115,7 +115,10 @@
       # shells. `exec` replaces the shell so exiting tmux closes the
       # terminal. Escape hatch: `NO_AUTO_TMUX=1 zsh` skips the launch
       # for one-off shells that need to stay bare.
-      if [[ -z "$TMUX" ]] && [[ -z "$NO_AUTO_TMUX" ]] && command -v tmux >/dev/null; then
+      # Skip inside VSCode's / Cursor's integrated terminal — its UI
+      # already provides tab/split management and tmux's status bar
+      # just steals vertical space there.
+      if [[ -z "$TMUX" ]] && [[ -z "$NO_AUTO_TMUX" ]] && [[ "$TERM_PROGRAM" != "vscode" ]] && command -v tmux >/dev/null; then
         # Reconcile the running tmux server's loaded conf state
         # against what's on disk. Two failure modes covered:
         # - boot-race partial load: the conf parse halts before
