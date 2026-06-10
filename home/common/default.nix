@@ -385,6 +385,8 @@
     wget
     rbw
     bitwarden-cli
+    cloudflared
+    ngrok
 
     uv
     micromamba
