@@ -328,11 +328,28 @@
         node = "22";
         pnpm = "10";
       };
-      # Read legacy version files (.nvmrc, .terraform-version, …) the way
-      # nvm/tfenv/asdf did, so existing repos don't need a .mise.toml.
-      settings.idiomatic_version_file_enable_tools = [ "node" ];
+      settings = {
+        # Read legacy version files (.nvmrc, .terraform-version, …) the
+        # way nvm/tfenv/asdf did, so existing repos don't need a
+        # .mise.toml.
+        idiomatic_version_file_enable_tools = [ "node" ];
+        # Install missing tools transparently the first time a shell
+        # sees them required, instead of failing loudly and waiting for
+        # a manual `mise install`.
+        not_found_auto_install = true;
+      };
     };
   };
+
+  # Pre-install whatever the global mise config declares at activation
+  # time, so `darwin-rebuild switch` leaves node/pnpm/etc. on disk
+  # without waiting for the next interactive shell. `mise install` with
+  # no args reads the rendered config and is idempotent across re-runs.
+  home.activation.miseInstall = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -x "${pkgs.mise}/bin/mise" ]; then
+      "${pkgs.mise}/bin/mise" install --yes || true
+    fi
+  '';
 
   # Keep program messages in English even though the rest of the
   # locale is ja_JP.UTF-8, so error output from sh / coreutils / git
