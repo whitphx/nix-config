@@ -4,7 +4,24 @@ let
 
   nixpkgsConfig = {
     config.allowUnfree = true;
-    overlays = [ inputs.llm-agents.overlays.default ];
+    overlays = [
+      inputs.llm-agents.overlays.default
+      (final: prev: {
+        emacs =
+          if prev.stdenv.hostPlatform.isDarwin then
+            # Emacs' Nextstep sources are Objective-C files that include C
+            # headers expecting C23 bool/alignment helpers. Clang does not
+            # expose those names there unless the compatibility headers are
+            # included explicitly.
+            prev.emacs.overrideAttrs (old: {
+              NIX_CFLAGS_COMPILE =
+                (old.NIX_CFLAGS_COMPILE or "")
+                + " -include stdbool.h -include stdalign.h";
+            })
+          else
+            prev.emacs;
+      })
+    ];
   };
 
   mkPkgs = system: import nixpkgs ({ inherit system; } // nixpkgsConfig);
