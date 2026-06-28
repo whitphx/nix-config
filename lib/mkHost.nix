@@ -7,19 +7,16 @@ let
     overlays = [
       inputs.llm-agents.overlays.default
       (final: prev: {
-        emacs =
-          if prev.stdenv.hostPlatform.isDarwin then
-            # Emacs' Nextstep sources are Objective-C files that include C
-            # headers expecting C23 bool/alignment helpers. Clang does not
-            # expose those names there unless the compatibility headers are
-            # included explicitly.
-            prev.emacs.overrideAttrs (old: {
-              NIX_CFLAGS_COMPILE =
-                (old.NIX_CFLAGS_COMPILE or "")
-                + " -include stdbool.h -include stdalign.h";
-            })
+        mise =
+          if prev.stdenv.hostPlatform.isDarwin && prev.mise.version == "2026.6.11" then
+            # mise 2026.6.11 has a Darwin-only test failure in its OCI layer
+            # metadata test: the fixture expects a setuid bit that the build
+            # environment reads back as a normal executable mode.
+            prev.mise.overrideAttrs {
+              doCheck = false;
+            }
           else
-            prev.emacs;
+            prev.mise;
       })
     ];
   };

@@ -73,13 +73,13 @@
     # Opt out of HM's legacy default block (it's slated for removal); we
     # only want the two explicit knobs below.
     enableDefaultConfig = false;
-    matchBlocks."*" = {
-      addKeysToAgent = "yes";
-      extraOptions.UseKeychain = "yes";
+    settings."*" = {
+      AddKeysToAgent = "yes";
+      UseKeychain = "yes";
     };
     # Scratchpad for ad-hoc / experimental hosts. Rendered as an `Include`
     # at the top of the generated config, so entries here override the
-    # declarative matchBlocks below — graduate stable hosts into
+    # declarative host settings below — graduate stable hosts into
     # private/hosts/<name>/home.nix when they settle.
     includes = [ "~/.ssh/config.local" ];
   };
