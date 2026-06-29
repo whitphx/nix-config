@@ -172,7 +172,14 @@
       if command -v micromamba >/dev/null 2>&1; then
         export MAMBA_EXE="$(command -v micromamba)"
         export MAMBA_ROOT_PREFIX="$HOME/.local/share/mamba"
-        eval "$(micromamba shell hook --shell zsh)"
+        # Nix wraps micromamba as `.mamba-wrapped`; mamba 2.6 rejects that
+        # basename when generating its shell function.
+        _mamba_hook="$(
+          micromamba shell hook --shell zsh \
+            | sed "s#\"/nix/store/[^\"]*/bin/\.mamba-wrapped\"#\"$MAMBA_EXE\"#g"
+        )"
+        eval "$_mamba_hook"
+        unset _mamba_hook
       fi
     '';
   };
