@@ -60,7 +60,7 @@
       "*~"
       ".DS_Store"
       ".envrc"
-      "**/.claude/settings.local.json"
+      "**/.claude/*.local.*"
     ];
   };
 
