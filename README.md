@@ -143,6 +143,23 @@ These steps target a host where you don't have root and so can't install Nix the
 
     Remember: each new login shell starts outside the chroot — re-enter with `nix-user-chroot ~/.nix bash` (or your alias) before running `home-manager`.
 
+## Chezmoi-managed dotfiles
+
+Home Manager installs `chezmoi`, but does not clone or apply the dotfiles repository during activation. Keep that step explicit so rebuilds do not depend on GitHub auth, Bitwarden template expansion, or live `$HOME` mutations.
+
+On a fresh machine, after the first Nix activation has put `chezmoi` on PATH:
+
+```bash
+chezmoi init --apply git@github.com:whitphx/dotfiles.git
+```
+
+This initializes Chezmoi's default source directory at `~/.local/share/chezmoi`. If the repository is already cloned there, `chezmoi cd`, `chezmoi diff`, and `chezmoi apply` will use it automatically.
+
+Ownership rule:
+
+- Nix owns stable machine policy: packages, shells, tmux/starship, Git defaults, macOS defaults, fonts, and other activation-time system state.
+- Chezmoi owns live-edited personal files and package-manager credential templates: `.claude/`, `.codex/`, `.github/hooks/`, `.npmrc`, pip/uv/pnpm registry config, and small scripts that are edited in place.
+
 ## Secret management
 
 This repository is public, but the configurations it produces depend on values that must not be. Secret material is split across three layers, each with a distinct role:
