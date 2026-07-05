@@ -384,6 +384,7 @@
     gibo
     gitleaks
     jq
+    ripgrep
     tree
     zsh-completions
     ffmpeg
