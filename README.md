@@ -1,6 +1,6 @@
 # nix-config
 
-Multi-platform Nix + Home Manager configuration for **macOS** (nix-darwin + Home Manager) and **Linux** (Home Manager standalone, run inside a rootless chroot via [`nix-user-chroot`](https://github.com/nix-community/nix-user-chroot) for hosts where you don't have root).
+Multi-platform Nix + Home Manager configuration for **macOS** (nix-darwin + Home Manager) and **Linux** (Home Manager standalone, either through a normal multi-user Nix daemon when sudo is available or inside a rootless chroot via [`nix-user-chroot`](https://github.com/nix-community/nix-user-chroot) when it is not).
 
 ## Repository layout
 
@@ -12,7 +12,7 @@ Multi-platform Nix + Home Manager configuration for **macOS** (nix-darwin + Home
 
 ## Bootstrapping
 
-Two flavors of fresh install: macOS via nix-darwin, Linux via Home Manager standalone. Both share the secret-store setup, which is described separately under [Secret management](#secret-management).
+Three flavors of fresh install: macOS via nix-darwin, Linux with sudo via Home Manager standalone, and rootless Linux via Home Manager standalone inside `nix-user-chroot`. All share the secret-store setup, which is described separately under [Secret management](#secret-management).
 
 ### macOS
 
@@ -81,6 +81,100 @@ Two flavors of fresh install: macOS via nix-darwin, Linux via Home Manager stand
 
     ```bash
     sudo darwin-rebuild switch --flake .#<host-nickname>
+    ```
+
+### Linux (sudo with Nix daemon)
+
+These steps target an Ubuntu host where your user has sudo, such as a GPU server or a Paperspace ML-in-a-Box machine. Nix is installed normally in multi-user daemon mode, while Home Manager owns the user environment.
+
+1. **Update the base OS and install `curl`**:
+
+    ```bash
+    sudo apt update
+    sudo apt upgrade -y
+    sudo apt install curl -y
+    ```
+
+    Reboot if the upgrade leaves `/var/run/reboot-required`.
+
+2. **Install Nix in daemon mode** — use the official Nix installer:
+
+    ```bash
+    curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install | sh -s -- --daemon
+    ```
+
+    Open a new shell afterward, or source the daemon profile in the current one:
+
+    ```bash
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    ```
+
+3. **Enable flakes**:
+
+    ```bash
+    sudo mkdir -p /etc/nix
+    sudo touch /etc/nix/nix.conf
+    grep -qxF "experimental-features = nix-command flakes" /etc/nix/nix.conf \
+      || echo "experimental-features = nix-command flakes" | sudo tee -a /etc/nix/nix.conf
+    ```
+
+4. **Verify Nix**:
+
+    ```bash
+    nix --version
+    nix store info
+    nix shell nixpkgs#hello -c hello
+    ```
+
+5. **Clone with submodules**:
+
+    ```bash
+    git clone --recurse-submodules git@github.com:whitphx/nix-config.git
+    cd nix-config
+    ```
+
+6. **Define a host** under `private/hosts/<host-nickname>/`. The directory name is what appears after the `@` in the Home Manager flake target:
+
+    `default.nix`:
+
+    ```nix
+    {
+      kind = "linux";
+      system = "x86_64-linux";  # or aarch64-linux
+      username = "<your-user>";
+      homeDirectory = "<your-home-dir>";  # e.g. /home/you
+    }
+    ```
+
+    `home.nix`:
+
+    ```nix
+    { ... }: { }
+    ```
+
+    For prebuilt ML images, prefer pointing host-specific environment variables at the image's system CUDA/toolchain paths instead of installing a second CUDA stack through Nix.
+
+7. **Commit + push the private host before first activation**. Nix evaluates this flake with submodules enabled, so a new host must be reachable from the private submodule remote:
+
+    ```bash
+    git -C private checkout main && git -C private add hosts/<host-nickname>
+    git -C private commit -m "Add <host-nickname> host"
+    git -C private push
+    git add private
+    ```
+
+8. **(Optional)** Secret-store setup per [Secret management](#secret-management).
+
+9. **First activation**:
+
+    ```bash
+    nix run home-manager/master -- switch --flake .#<your-user>@<host-nickname>
+    ```
+
+10. **Subsequent rebuilds**:
+
+    ```bash
+    home-manager switch --flake .#<your-user>@<host-nickname>
     ```
 
 ### Linux (rootless via `nix-user-chroot`)
