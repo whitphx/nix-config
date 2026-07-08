@@ -118,7 +118,13 @@
       # Skip inside VSCode's / Cursor's integrated terminal — its UI
       # already provides tab/split management and tmux's status bar
       # just steals vertical space there.
-      if [[ -z "$TMUX" ]] && [[ -z "$NO_AUTO_TMUX" ]] && [[ "$TERM_PROGRAM" != "vscode" ]] && command -v tmux >/dev/null; then
+      # The interactive / tty / $CLAUDECODE guards keep the `exec` from
+      # hijacking shells that merely *source* this rc to harvest the
+      # environment (Claude Code's Bash tool, git hooks, scp): they run
+      # zsh non-interactively or without a tty on stdout, so tmux would
+      # replace the process and hang forever, wedging the command.
+      if [[ -o interactive ]] && [[ -t 1 ]] && [[ -z "$CLAUDECODE" ]] \
+         && [[ -z "$TMUX" ]] && [[ -z "$NO_AUTO_TMUX" ]] && [[ "$TERM_PROGRAM" != "vscode" ]] && command -v tmux >/dev/null; then
         # Reconcile the running tmux server's loaded conf state
         # against what's on disk. Two failure modes covered:
         # - boot-race partial load: the conf parse halts before
