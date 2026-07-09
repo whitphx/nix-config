@@ -288,19 +288,13 @@
       # restyle the status bar so this session doesn't collide with —
       # or look identical to — an outer tmux on the originating
       # machine.
+      # Shared prefix-swap + status/border restyle live in the neutral
+      # ../tmux-ssh-overrides.conf (also used by the host tmux on
+      # nix-user-chroot hosts). Only status-right is host-tmux-specific;
+      # this one uses the nix plugin widgets.
       if-shell '[ -n "$SSH_CONNECTION" ] || [ -n "$SSH_TTY" ]' {
-        set -g prefix C-u
-        bind-key C-u send-prefix
-        # Explicitly neutralise C-o so the default `prefix + C-o =
-        # rotate-window` does not leak into the SSH override.
-        bind-key C-o run-shell "true"
-
-        set -g status-style fg=colour255,bg=colour52
-        set -g status-left " 🌐 #h  W-#I P-#P #[fg=green]#{=40:pane_title}"
+      ${builtins.readFile ../tmux-ssh-overrides.conf}
         set -g status-right "#{prefix_highlight} #{battery_icon} #{battery_percentage} #{online_status} %Y-%m-%d(%a) %H:%M "
-
-        set -g pane-border-style fg=colour167,bg=colour52
-        set -g pane-active-border-style fg=colour209,bg=colour88
       }
 
       # battery / online-status / prefix-highlight rewrite the active

@@ -115,7 +115,7 @@ let
     set -g pane-active-border-style fg=colour227,bg=colour240
     set -g message-style fg=white,bg=black,bright
 
-    set -g status-left-length 40
+    set -g status-left-length 80
     set -g status-left "#[fg=yellow]W-#I #[fg=cyan]P-#P"
     set -g status-right "#{?client_prefix,#[bg=colour226 fg=black] PREFIX #[default],} %Y-%m-%d(%a) %H:%M "
     set -g status-interval 10
@@ -129,23 +129,19 @@ let
 
     # SSH override placed last so it beats the unconditional defaults
     # above. The bash that starts this tmux is itself an SSH session,
-    # so $SSH_CONNECTION is set and this branch fires.
+    # so $SSH_CONNECTION is set and this branch fires. The prefix-swap +
+    # status/border restyle come from the neutral ../tmux-ssh-overrides.conf
+    # shared with common's nix tmux; only the two lines below are specific
+    # to this host tmux (a plugin-free status-right, and an extra
+    # pane-rotate binding).
     if-shell '[ -n "$SSH_CONNECTION" ] || [ -n "$SSH_TTY" ]' {
-      set -g prefix C-u
-      bind-key C-u send-prefix
-      bind-key C-o run-shell "true"
-
-      # Mirror the default `prefix + o` pane-rotate onto `prefix + u`
-      # so the muscle memory of "tap the prefix letter twice" keeps
-      # working after the prefix moves from C-o to C-u in SSH.
+    ${builtins.readFile ../tmux-ssh-overrides.conf}
+      # Mirror the default `prefix + o` pane-rotate onto `prefix + u` so
+      # the "tap the prefix letter twice" muscle memory keeps working
+      # after the prefix moves from C-o to C-u.
       bind-key u select-pane -t :.+
-
-      set -g status-style fg=colour255,bg=colour52
-      set -g status-left " 🌐 #h  W-#I P-#P "
+      # Plugin-free status-right (host tmux server can't load nix plugins).
       set -g status-right "#{?client_prefix,#[bg=colour226 fg=black] PREFIX #[default],} %Y-%m-%d(%a) %H:%M "
-
-      set -g pane-border-style fg=colour167,bg=colour52
-      set -g pane-active-border-style fg=colour209,bg=colour88
     }
   '';
 in
