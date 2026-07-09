@@ -1,5 +1,7 @@
 { ... }:
 {
+  imports = [ ./nix-user-chroot.nix ];
+
   programs.git.settings.credential.helper = "store";
 
   # Manage ssh-agent on Linux without systemd. keychain reuses a
