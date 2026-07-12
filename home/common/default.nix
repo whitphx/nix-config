@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, llm-agents, ... }:
 {
   programs.home-manager.enable = true;
 
