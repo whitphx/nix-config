@@ -5,7 +5,6 @@ let
   nixpkgsConfig = {
     config.allowUnfree = true;
     overlays = [
-      inputs.llm-agents.overlays.default
       (final: prev: {
         mise =
           if prev.stdenv.hostPlatform.isDarwin && prev.mise.version == "2026.6.11" then
@@ -30,6 +29,9 @@ in
     in
     home-manager.lib.homeManagerConfiguration {
       pkgs = mkPkgs meta.system;
+      extraSpecialArgs = {
+        llm-agents = inputs.llm-agents.packages.${meta.system};
+      };
       modules = [
         ../home/common
         ../home/linux
@@ -65,6 +67,9 @@ in
             useGlobalPkgs = true;
             useUserPackages = true;
             backupFileExtension = "backup";
+            extraSpecialArgs = {
+              llm-agents = inputs.llm-agents.packages.${meta.system};
+            };
             users.${meta.username} = {
               imports = [
                 ../home/common
