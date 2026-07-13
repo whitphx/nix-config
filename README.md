@@ -237,6 +237,29 @@ These steps target a host where you don't have root and so can't install Nix the
 
     Remember: each new login shell starts outside the chroot — re-enter with `nix-user-chroot ~/.nix bash` (or your alias) before running `home-manager`.
 
+## Updating flake inputs
+
+Update only the `llm-agents` input from the repository root:
+
+```bash
+nix flake update llm-agents
+```
+
+The general form accepts one or more input names from `flake.nix`:
+
+```bash
+nix flake update <input-name>
+nix flake update <input-name> <another-input-name>
+```
+
+Omit the input names to update every input:
+
+```bash
+nix flake update
+```
+
+These commands update `flake.lock`. Packages provided by `llm-agents`, such as `claude-code` and `codex`, share that single pinned flake input and cannot be updated independently here.
+
 ## Chezmoi-managed dotfiles
 
 Home Manager installs `chezmoi`, but does not clone or apply the dotfiles repository during activation. Keep that step explicit so rebuilds do not depend on GitHub auth, Bitwarden template expansion, or live `$HOME` mutations.
