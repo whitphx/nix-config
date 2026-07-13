@@ -358,11 +358,11 @@
     fi
   '';
 
-  # Keep program messages in English even though the rest of the
-  # locale is ja_JP.UTF-8, so error output from sh / coreutils / git
-  # is greppable and matches upstream docs.
+  # Keep CLI output consistent with upstream documentation regardless of the
+  # desktop language. LC_ALL also covers date and time formatting used by ps.
   home.sessionVariables = {
-    LC_MESSAGES = "C";
+    LANG = "en_US.UTF-8";
+    LC_ALL = "en_US.UTF-8";
   };
 
   # micromamba does not auto-create its root prefix when missing, so
