@@ -159,6 +159,36 @@
         exec tmux new-session -A -s main
       fi
 
+      # A TUI killed mid-session never gets to restore the terminal
+      # state it changed, so that state persists here: mouse tracking
+      # turns clicks into escape garbage, bracketed paste wraps pastes
+      # in markers, a stuck line-drawing charset renders ordinary text
+      # as box characters. A nested tmux reached over ssh is the usual
+      # trigger. None of it should ever be in effect while sitting at a
+      # shell prompt, so restoring before each prompt is idempotent,
+      # costs no fork, and repairs whatever the previous command broke
+      # without needing a wrapper per offending command. zle turns
+      # bracketed paste back on when the line editor starts, which is
+      # after precmd, so this doesn't fight it.
+      _restore-term-state() {
+        if [[ -t 1 ]]; then
+          # mouse tracking (normal/button/any), SGR mouse encoding,
+          # focus reporting, bracketed paste, G0 charset, attributes
+          printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1004l\e[?2004l\e(B\e[m'
+        fi
+      }
+      autoload -Uz add-zsh-hook
+      add-zsh-hook precmd _restore-term-state
+
+      # Escape hatch for damage the sequences above don't cover. Stays
+      # manual because inside tmux `send-keys -R` clears the visible
+      # pane (scrollback survives) — run automatically it would wipe
+      # the error output of whatever just failed.
+      fix-term() {
+        [[ -n "$TMUX" ]] && tmux send-keys -R -t "$TMUX_PANE" 2>/dev/null
+        _restore-term-state
+      }
+
       # Fuzzy-pick a ghq-managed repo and cd into it.
       gl() {
         local repo
