@@ -3,6 +3,11 @@ let
   primaryUserHome = config.users.users.${config.system.primaryUser}.home;
 in
 {
+  homebrew = {
+    enable = true;
+    casks = [ "jordanbaird-ice" ];
+  };
+
   system.keyboard = {
     enableKeyMapping = true;
     remapCapsLockToControl = true;
