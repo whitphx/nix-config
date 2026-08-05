@@ -88,6 +88,11 @@
     ];
 
     initContent = ''
+      # GUI terminals can inherit Home Manager's sourced marker alongside the
+      # desktop locale, causing its session-variable script to skip these.
+      export LANG="en_US.UTF-8"
+      export LC_ALL="en_US.UTF-8"
+
       # Treat `/` as a word boundary so M-Bksp / M-f / M-b stop at each
       # path component instead of swallowing the whole path.
       WORDCHARS=''${WORDCHARS//\//}
