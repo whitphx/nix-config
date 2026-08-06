@@ -68,6 +68,26 @@
     enable = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
+    completionInit = ''
+      autoload -Uz compinit
+      zmodload zsh/datetime
+      zmodload zsh/stat
+
+      typeset -A _zcompdump_stat
+      local _zcompdump="''${ZDOTDIR:-$HOME}/.zcompdump"
+      # Periodic full initialization discovers newly installed completions and
+      # reruns compaudit instead of trusting the cached definitions forever.
+      if [[ ! -s "$_zcompdump" ]] \
+         || ! zstat -H _zcompdump_stat +mtime "$_zcompdump" 2>/dev/null \
+         || (( EPOCHSECONDS - _zcompdump_stat[mtime] > 86400 )); then
+        compinit -d "$_zcompdump"
+      else
+        # The dump already records the completion definitions, so avoid
+        # rescanning every completion file until the next refresh.
+        compinit -C -d "$_zcompdump"
+      fi
+      unset _zcompdump _zcompdump_stat
+    '';
     history = {
       size = 50000;
       save = 50000;
@@ -228,10 +248,30 @@
   programs.starship = {
     enable = true;
     settings = {
-      custom.datetime = {
-        command = ''date +"%Y-%m-%d %H:%M:%S"'';
-        when = "true";
-        format = "[$output](bold yellow) ";
+      scan_timeout = 10;
+      # `$all` probes every contextual module on each redraw. Keep the prompt
+      # limited to the shell, environment, and repository state used here.
+      format = lib.concatStrings [
+        "$username"
+        "$hostname"
+        "$directory"
+        "$git_branch"
+        "$git_status"
+        "$nix_shell"
+        "$conda"
+        "$direnv"
+        "$mise"
+        "$gcloud"
+        "$time"
+        "$cmd_duration"
+        "$line_break"
+        "$character"
+      ];
+      # A custom clock command would fork `date` for every prompt redraw.
+      time = {
+        disabled = false;
+        time_format = "%Y-%m-%d %H:%M:%S";
+        format = "[$time](bold yellow) ";
       };
     };
   };
