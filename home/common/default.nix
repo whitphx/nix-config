@@ -488,6 +488,10 @@
     hackgen-font
     hackgen-nf-font
 
+    # Ships the `hf` / `huggingface-cli` commands; nixpkgs has no
+    # standalone CLI attribute for them.
+    python3Packages.huggingface-hub
+
     (llm-agents.claude-code.override { disableTelemetry = false; })
     llm-agents.codex
   ];
