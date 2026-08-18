@@ -6,10 +6,11 @@
 
   # Manage ssh-agent on Linux without systemd. keychain reuses a
   # running agent if one is found and starts one otherwise, then
-  # exposes SSH_AUTH_SOCK via the zsh integration.
+  # exposes SSH_AUTH_SOCK via the shell integrations.
   programs.keychain = {
     enable = true;
     enableZshIntegration = true;
+    enableBashIntegration = true;
     keys = [ "id_ed25519" ];
   };
 }

@@ -108,140 +108,46 @@
     ];
 
     initContent = ''
-      # GUI terminals can inherit Home Manager's sourced marker alongside the
-      # desktop locale, causing its session-variable script to skip these.
-      export LANG="en_US.UTF-8"
-      export LC_ALL="en_US.UTF-8"
-
       # Treat `/` as a word boundary so M-Bksp / M-f / M-b stop at each
-      # path component instead of swallowing the whole path.
+      # path component instead of swallowing the whole path. Bash's
+      # readline already breaks words there.
       WORDCHARS=''${WORDCHARS//\//}
 
-      # $TMUX leaks when a GUI app is launched via `open -a` from a
-      # tmux-bound shell — the var propagates to the app, then to
-      # every child shell it spawns, even though those shells have no
-      # real tmux ancestor. Without this guard the auto-attach block
-      # below sees $TMUX set and skips, leaving a bare shell. Walk
-      # parent PIDs; if no tmux ancestor is found, the value is stale.
-      if [[ -n "$TMUX" ]]; then
-        local _pid=$PPID _in_tmux=0
-        while [[ "$_pid" -gt 1 ]]; do
-          case "$(ps -p "$_pid" -o comm= 2>/dev/null)" in
-            *tmux*) _in_tmux=1; break ;;
-          esac
-          _pid=$(ps -p "$_pid" -o ppid= 2>/dev/null | tr -d ' ')
-          [[ -z "$_pid" ]] && break
-        done
-        (( _in_tmux )) || unset TMUX TMUX_PANE
-        unset _pid _in_tmux
-      fi
+      source ${./shell/common.sh}
 
-      # Auto-attach (or create) a tmux session for new interactive
-      # shells. `exec` replaces the shell so exiting tmux closes the
-      # terminal. Escape hatch: `NO_AUTO_TMUX=1 zsh` skips the launch
-      # for one-off shells that need to stay bare.
-      # Skip inside VSCode's / Cursor's integrated terminal — its UI
-      # already provides tab/split management and tmux's status bar
-      # just steals vertical space there.
-      # The interactive / tty / $CLAUDECODE guards keep the `exec` from
-      # hijacking shells that merely *source* this rc to harvest the
-      # environment (Claude Code's Bash tool, git hooks, scp): they run
-      # zsh non-interactively or without a tty on stdout, so tmux would
-      # replace the process and hang forever, wedging the command.
-      if [[ -o interactive ]] && [[ -t 1 ]] && [[ -z "$CLAUDECODE" ]] \
-         && [[ -z "$TMUX" ]] && [[ -z "$NO_AUTO_TMUX" ]] && [[ "$TERM_PROGRAM" != "vscode" ]] && command -v tmux >/dev/null; then
-        # Reconcile the running tmux server's loaded conf state
-        # against what's on disk. Two failure modes covered:
-        # - boot-race partial load: the conf parse halts before
-        #   reaching its last line (@loaded != "1"). The conf sets
-        #   @loaded on its last line as a parse-completion marker.
-        # - stale conf after darwin-rebuild switch: the rendered
-        #   conf has changed but the running server still holds
-        #   the previous version's settings. ~/.config/tmux/tmux.conf
-        #   is a symlink whose target changes to a new /nix/store
-        #   path whenever the conf content changes; that target is
-        #   the version identity. Stored in @conf-id by zsh below.
-        # When no server is running, start it explicitly so @conf-id
-        # can be set before any client attaches — that avoids a
-        # spurious re-source on the next shell after a clean boot.
-        local _expected=$(readlink ~/.config/tmux/tmux.conf 2>/dev/null)
-        if tmux info >/dev/null 2>&1; then
-          local _loaded=$(tmux show-options -gv @loaded 2>/dev/null)
-          local _conf_id=$(tmux show-options -gv @conf-id 2>/dev/null)
-          local _need=0
-          [[ "$_loaded" != "1" ]] && _need=1
-          [[ -n "$_expected" && "$_expected" != "$_conf_id" ]] && _need=1
-          if (( _need )); then
-            tmux source-file ~/.config/tmux/tmux.conf 2>/dev/null
-            [[ -n "$_expected" ]] && tmux set-option -g @conf-id "$_expected" 2>/dev/null
-          fi
-          unset _loaded _conf_id _need
-        else
-          tmux start-server
-          [[ -n "$_expected" ]] && tmux set-option -g @conf-id "$_expected" 2>/dev/null
-        fi
-        unset _expected
-        exec tmux new-session -A -s main
-      fi
+      # `gw` worktree manager (see shell/gw.sh for the implementation).
+      source ${./shell/gw.sh}
 
-      # A TUI killed mid-session never gets to restore the terminal
-      # state it changed, so that state persists here: mouse tracking
-      # turns clicks into escape garbage, bracketed paste wraps pastes
-      # in markers, a stuck line-drawing charset renders ordinary text
-      # as box characters. A nested tmux reached over ssh is the usual
-      # trigger. None of it should ever be in effect while sitting at a
-      # shell prompt, so restoring before each prompt is idempotent,
-      # costs no fork, and repairs whatever the previous command broke
-      # without needing a wrapper per offending command. zle turns
-      # bracketed paste back on when the line editor starts, which is
-      # after precmd, so this doesn't fight it.
-      _restore-term-state() {
-        if [[ -t 1 ]]; then
-          # mouse tracking (normal/button/any), SGR mouse encoding,
-          # focus reporting, bracketed paste, G0 charset, attributes
-          printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1004l\e[?2004l\e(B\e[m'
-        fi
-      }
       autoload -Uz add-zsh-hook
       add-zsh-hook precmd _restore-term-state
+    '';
+  };
 
-      # Escape hatch for damage the sequences above don't cover. Stays
-      # manual because inside tmux `send-keys -R` clears the visible
-      # pane (scrollback survives) — run automatically it would wipe
-      # the error output of whatever just failed.
-      fix-term() {
-        [[ -n "$TMUX" ]] && tmux send-keys -R -t "$TMUX_PANE" 2>/dev/null
-        _restore-term-state
-      }
+  # Zsh is the shell we live in, but some hosts hand us a bash login
+  # shell and some tools spawn one, so bash gets the same environment.
+  # The portable half lives in shell/common.sh, sourced by both.
+  programs.bash = {
+    enable = true;
 
-      # Fuzzy-pick a ghq-managed repo and cd into it.
-      gl() {
-        local repo
-        repo=$(ghq list --full-path | fzf --layout=reverse --preview "cat {}/README.*")
-        [[ -n "$repo" ]] && cd "$repo"
-      }
+    historySize = 50000;
+    historyFileSize = 50000;
+    historyControl = [ "ignoredups" "ignorespace" "erasedups" ];
 
-      # `gw` worktree manager (see zsh/gw.zsh for the implementation).
-      source ${./zsh/gw.zsh}
+    initExtra = ''
+      # Timestamps in the history file, as zsh's extended history keeps.
+      HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S "
 
-      # Aikido Safe Chain wraps npm/yarn/pnpm to block known-malicious
-      # packages. Its init script is laid down by safe-chain's own
-      # installer (outside of this Nix config); source it if present.
-      [[ -f ~/.safe-chain/scripts/init-zsh.zsh ]] && source ~/.safe-chain/scripts/init-zsh.zsh
+      source ${./shell/common.sh}
 
-      # micromamba: drop-in for `conda activate` style env management.
-      if command -v micromamba >/dev/null 2>&1; then
-        export MAMBA_EXE="$(command -v micromamba)"
-        export MAMBA_ROOT_PREFIX="$HOME/.local/share/mamba"
-        # Nix wraps micromamba as `.mamba-wrapped`; mamba 2.6 rejects that
-        # basename when generating its shell function.
-        _mamba_hook="$(
-          micromamba shell hook --shell zsh \
-            | sed "s#\"/nix/store/[^\"]*/bin/\.mamba-wrapped\"#\"$MAMBA_EXE\"#g"
-        )"
-        eval "$_mamba_hook"
-        unset _mamba_hook
-      fi
+      # `gw` worktree manager (see shell/gw.sh for the implementation).
+      source ${./shell/gw.sh}
+
+      # `history -a` then `history -n` are the two halves of zsh's shared
+      # history: flush what this shell just ran, then read what the other
+      # shells appended. The other PROMPT_COMMAND hooks in this file
+      # preserve an existing value, so this survives wherever it lands
+      # relative to them.
+      PROMPT_COMMAND="_restore-term-state; history -a; history -n''${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
     '';
   };
 

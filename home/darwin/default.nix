@@ -61,7 +61,7 @@
     /usr/bin/killall cfprefsd 2>/dev/null || true
   '';
 
-  programs.zsh.shellAliases.intelzsh = "arch -x86_64 zsh";
+  home.shellAliases.intelzsh = "arch -x86_64 zsh";
 
   # macOS-native ssh-agent (managed by launchd, integrated with Keychain).
   # `AddKeysToAgent yes` makes ssh push keys into the agent on first use;
@@ -95,26 +95,11 @@
     };
   };
 
-  # Source Homebrew for HOMEBREW_PREFIX / MANPATH / INFOPATH, then push
-  # /opt/homebrew/{bin,sbin} to the back of $path so Nix-managed
-  # binaries win lookups (`brew shellenv` prepends them by default).
-  # Existence-checked so the shell still boots on hosts where Homebrew
-  # isn't installed (e.g. a fresh macOS).
+  # Login-shell fixups shared by both shells (see shell/profile.sh).
   programs.zsh.profileExtra = ''
-    if [ -x /opt/homebrew/bin/brew ]; then
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-      path=("''${(@)path:#/opt/homebrew/(bin|sbin)}" /opt/homebrew/bin /opt/homebrew/sbin)
-    fi
-
-    # macOS Tahoe (26) sometimes doesn't propagate $SSH_AUTH_SOCK into
-    # GUI-launched shells, even though launchd still has a socket bound.
-    # Recover it from launchctl's "inherited environment" so ssh-add /
-    # ssh / git can reach the agent without manual export.
-    if [ -z "''${SSH_AUTH_SOCK:-}" ]; then
-      _ssh_sock=$(/bin/launchctl print "gui/$(id -u)/com.openssh.ssh-agent" 2>/dev/null \
-        | /usr/bin/awk '/^[[:space:]]*SSH_AUTH_SOCK/ {print $NF; exit}')
-      [ -n "$_ssh_sock" ] && export SSH_AUTH_SOCK="$_ssh_sock"
-      unset _ssh_sock
-    fi
+    source ${./shell/profile.sh}
+  '';
+  programs.bash.profileExtra = ''
+    source ${./shell/profile.sh}
   '';
 }

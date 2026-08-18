@@ -13,26 +13,58 @@
 # Worktrees live in ~/worktrees/<host>/<owner>/<repo>/ rather than under
 # .git/, because some tools (e.g. the Vite dev server) refuse to read
 # files inside `.git`.
+#
+# Sourced by both zsh and bash, so it sticks to syntax both accept: line
+# generators feed `while read` loops over process substitution instead of
+# zsh's `${(@f)}` splitting, and the two places where the shells genuinely
+# differ (line-edited input, glob-from-a-variable) go through the shims
+# below.
+
+# Prompt for a value using the shell's own line editor, so the usual
+# editing keys work while typing. Takes the prompt and the name of the
+# variable to fill, which the caller declares.
+__gw_read_edited() {
+  if [ -n "${ZSH_VERSION:-}" ]; then
+    vared -p "$1" "$2"
+  else
+    read -e -r -p "$1" "$2"
+  fi
+}
+
+# Emit files matching <dir>/<pattern>. Uses `find` rather than a glob
+# because a pattern held in a variable expands in bash but not in zsh,
+# and an unmatched glob is an error in zsh but a literal in bash.
+__gw_glob() {
+  local dir=$1 pattern=$2 name
+  case "$pattern" in
+    */*) dir="$dir/${pattern%/*}"; name=${pattern##*/} ;;
+    *)   name=$pattern ;;
+  esac
+  find "$dir" -maxdepth 1 -type f -name "$name" 2>/dev/null
+}
 
 __gw_get_worktrees_dir() {
   local remote_url host owner_repo repo_root repo_name
   remote_url=$(git remote get-url origin 2>/dev/null)
 
-  if [[ -n "$remote_url" ]]; then
+  if [ -n "$remote_url" ]; then
     host=""
     owner_repo=""
     # Supported remote URL shapes:
     #   git@host:owner/repo(.git)?
     #   {https,ssh}://[user@]host/owner/repo(.git)?
-    if [[ "$remote_url" == git@*:* ]]; then
-      host=$(echo "$remote_url" | sed -E 's|^git@([^:]+):.*|\1|')
-      owner_repo=$(echo "$remote_url" | sed -E 's|^git@[^:]+:||; s|\.git$||')
-    elif [[ "$remote_url" == *://* ]]; then
-      host=$(echo "$remote_url" | sed -E 's|^[^/]+://([^@]+@)?([^/]+)/.*|\2|')
-      owner_repo=$(echo "$remote_url" | sed -E 's|^[^/]+://([^@]+@)?[^/]+/||; s|\.git$||')
-    fi
+    case "$remote_url" in
+      git@*:*)
+        host=$(echo "$remote_url" | sed -E 's|^git@([^:]+):.*|\1|')
+        owner_repo=$(echo "$remote_url" | sed -E 's|^git@[^:]+:||; s|\.git$||')
+        ;;
+      *://*)
+        host=$(echo "$remote_url" | sed -E 's|^[^/]+://([^@]+@)?([^/]+)/.*|\2|')
+        owner_repo=$(echo "$remote_url" | sed -E 's|^[^/]+://([^@]+@)?[^/]+/||; s|\.git$||')
+        ;;
+    esac
 
-    if [[ -n "$host" && -n "$owner_repo" ]]; then
+    if [ -n "$host" ] && [ -n "$owner_repo" ]; then
       echo "$HOME/worktrees/$host/$owner_repo"
       return
     fi
@@ -50,9 +82,7 @@ __gw_worktree_paths() {
 }
 
 __gw_has_worktrees() {
-  local -a paths
-  paths=("${(@f)$(__gw_worktree_paths)}")
-  (( ${#paths[@]} > 1 ))
+  [ "$(__gw_worktree_paths | wc -l)" -gt 1 ]
 }
 
 __gw_preview_worktree() {
@@ -133,35 +163,33 @@ SH
 
 __gw_switch_interactive() {
   local worktrees_dir=$1
-  local -a worktree_list
-  worktree_list=("${(@f)$(__gw_worktree_paths)}")
 
-  local main_worktree=${worktree_list[1]}
-  local current_worktree
+  local main_worktree current_worktree
+  main_worktree=$(__gw_worktree_paths | head -1)
   current_worktree=$(pwd -P)
 
   # Marker line for "+ Add new worktree…". Leading TAB keeps the
   # tab-delimited shape so `--with-nth=2` still renders correctly.
   local add_worktree_marker=$'\t+ Add new worktree...'
 
-  local -a fzf_input
+  local fzf_input=()
   local wt_path branch relative_path current_marker
-  for wt_path in "${worktree_list[@]}"; do
+  while IFS= read -r wt_path; do
     branch=$(git -C "$wt_path" rev-parse --abbrev-ref HEAD 2>/dev/null)
-    if [[ "$wt_path" == "$main_worktree" ]]; then
+    if [ "$wt_path" = "$main_worktree" ]; then
       relative_path="."
     else
-      relative_path=${wt_path#$main_worktree/}
+      relative_path=${wt_path#"$main_worktree"/}
     fi
-    if [[ "$wt_path" == "$current_worktree" ]]; then
+    if [ "$wt_path" = "$current_worktree" ]; then
       current_marker="* "
     else
       current_marker="  "
     fi
     fzf_input+=( "${wt_path}"$'\t'"${current_marker}${relative_path} [${branch}]" )
-  done
+  done < <(__gw_worktree_paths)
 
-  if (( ${#fzf_input[@]} == 0 )); then
+  if [ ${#fzf_input[@]} -eq 0 ]; then
     echo "No worktrees to switch to"
     return 1
   fi
@@ -170,7 +198,7 @@ __gw_switch_interactive() {
   preview_script=$(__gw_preview_worktree)
 
   local selected
-  selected=$(print -l -- "$add_worktree_marker" "${fzf_input[@]}" | fzf \
+  selected=$(printf '%s\n' "$add_worktree_marker" "${fzf_input[@]}" | fzf \
     --preview="$preview_script" \
     --preview-window="right:60%:wrap" \
     --header="Git Worktrees | Enter: switch" \
@@ -180,8 +208,8 @@ __gw_switch_interactive() {
     --delimiter=$'\t' \
     --with-nth=2)
 
-  if [[ -n "$selected" ]]; then
-    if [[ "$selected" == "$add_worktree_marker" ]]; then
+  if [ -n "$selected" ]; then
+    if [ "$selected" = "$add_worktree_marker" ]; then
       __gw_select_branch_and_create "$worktrees_dir"
     else
       local target_path=${selected%%$'\t'*}
@@ -195,18 +223,18 @@ __gw_create_worktree() {
   local branch_name=$1
   local worktrees_dir=$2
 
-  if [[ -z "$branch_name" ]]; then
+  if [ -z "$branch_name" ]; then
     echo "Error: Branch name required"
     return 1
   fi
 
-  [[ -d "$worktrees_dir" ]] || mkdir -p "$worktrees_dir"
+  [ -d "$worktrees_dir" ] || mkdir -p "$worktrees_dir"
 
   # Branch names can contain `/`; flatten to `-` for the on-disk dir.
   local dir_name=${branch_name//\//-}
   local worktree_path="$worktrees_dir/$dir_name"
 
-  if [[ -d "$worktree_path" ]]; then
+  if [ -d "$worktree_path" ]; then
     echo "Worktree already exists at: $worktree_path"
     cd "$worktree_path"
     return 0
@@ -222,7 +250,7 @@ __gw_create_worktree() {
   fi
 
   local rc=$?
-  if (( rc != 0 )); then
+  if [ "$rc" -ne 0 ]; then
     echo "Failed to create worktree"
     return 1
   fi
@@ -232,8 +260,7 @@ __gw_create_worktree() {
   # Seed the new worktree with developer-local files that git doesn't
   # track but every checkout still needs (env files, Claude per-repo
   # local settings, etc.).
-  local -a copy_patterns
-  copy_patterns=(
+  local copy_patterns=(
     ".env"
     ".claude/*.local.*"
   )
@@ -241,23 +268,22 @@ __gw_create_worktree() {
   local main_worktree
   main_worktree=$(__gw_worktree_paths | head -1)
 
-  setopt local_options nullglob
   local pattern file relative_path target_dir
   for pattern in "${copy_patterns[@]}"; do
-    for file in $main_worktree/${~pattern}; do
-      [[ -f "$file" ]] || continue
-      relative_path=${file#$main_worktree/}
+    while IFS= read -r file; do
+      relative_path=${file#"$main_worktree"/}
       target_dir=$(dirname "$worktree_path/$relative_path")
       mkdir -p "$target_dir"
       cp "$file" "$worktree_path/$relative_path"
       echo "Copied $relative_path"
-    done
+    done < <(__gw_glob "$main_worktree" "$pattern")
   done
 
-  if [[ -f "$worktree_path/.gitmodules" ]]; then
+  if [ -f "$worktree_path/.gitmodules" ]; then
     local init_submodules
-    read "init_submodules?Initialize submodules? [Y/n] "
-    if [[ "$init_submodules" != "n" && "$init_submodules" != "N" ]]; then
+    printf '%s' "Initialize submodules? [Y/n] "
+    read -r init_submodules
+    if [ "$init_submodules" != "n" ] && [ "$init_submodules" != "N" ]; then
       echo "Initializing submodules..."
       git -C "$worktree_path" submodule update --init --recursive
     fi
@@ -277,17 +303,19 @@ __gw_select_branch_and_create() {
   # so `refs/remotes/origin/HEAD` collapses to `HEAD` and is filtered
   # out — using `branch -a` here instead would leak `origin` as a
   # phantom branch, since git renders that symref as a bare remote name.
-  local -a branches
-  branches=("${(@f)$( {
+  local branches=()
+  local branch
+  while IFS= read -r branch; do
+    branches+=( "$branch" )
+  done < <( {
       git for-each-ref --format='%(refname:short)' refs/heads
       git for-each-ref --format='%(refname:lstrip=3)' refs/remotes
-    } | grep -v '^HEAD$' | sort -u )}")
+    } | grep -v '^HEAD$' | sort -u )
 
   local preview_script
   preview_script=$(__gw_preview_branch)
 
-  local -a fzf_args
-  fzf_args=(
+  local fzf_args=(
     --preview="$preview_script"
     --preview-window="right:60%:wrap"
     --header="Select existing branch or create new"
@@ -295,22 +323,19 @@ __gw_select_branch_and_create() {
     --height=80%
     --layout=reverse
   )
-  [[ -n "$initial_query" ]] && fzf_args+=( --query="$initial_query" )
+  [ -n "$initial_query" ] && fzf_args+=( --query="$initial_query" )
 
   local selection
-  selection=$(print -l -- "$new_branch_marker" "${branches[@]}" | fzf "${fzf_args[@]}")
+  selection=$(printf '%s\n' "$new_branch_marker" "${branches[@]}" | fzf "${fzf_args[@]}")
 
-  if [[ -z "$selection" ]]; then
+  if [ -z "$selection" ]; then
     return
   fi
 
-  if [[ "$selection" == "$new_branch_marker" ]]; then
-    # `vared` runs the input through ZLE, so the user's normal line
-    # editing (Emacs by default — Ctrl-B/Ctrl-F/Ctrl-A/…) works here,
-    # unlike plain `read` which only sees stty cooked-mode editing.
+  if [ "$selection" = "$new_branch_marker" ]; then
     local new_branch_name=""
-    vared -p "Enter new branch name: " new_branch_name
-    if [[ -z "$new_branch_name" ]]; then
+    __gw_read_edited "Enter new branch name: " new_branch_name
+    if [ -z "$new_branch_name" ]; then
       echo "Cancelled: no branch name entered"
       return 1
     fi
@@ -330,19 +355,18 @@ __gw_confirm_and_remove() {
   echo "  Path:   $worktree_path"
   echo "  Branch: ${branch:-<detached>}"
 
-  if [[ -n "$changes" ]]; then
-    print -P "%F{yellow}%B⚠️  Warning: Worktree has uncommitted changes — they will be lost:%b%f"
+  if [ -n "$changes" ]; then
+    printf '\033[1;33m⚠️  Warning: Worktree has uncommitted changes — they will be lost:\033[0m\n'
     echo "$changes" | head -10
-    local -a change_lines
-    change_lines=("${(@f)changes}")
-    if (( ${#change_lines[@]} > 10 )); then
+    if [ "$(echo "$changes" | wc -l)" -gt 10 ]; then
       echo "  ... and more"
     fi
   fi
 
   local confirm
-  read "confirm?Remove this worktree? [y/N] "
-  if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+  printf '%s' "Remove this worktree? [y/N] "
+  read -r confirm
+  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     echo "Cancelled"
     return
   fi
@@ -352,10 +376,11 @@ __gw_confirm_and_remove() {
 
   echo "Worktree removed successfully"
 
-  if [[ -n "$branch" && "$branch" != "HEAD" ]]; then
+  if [ -n "$branch" ] && [ "$branch" != "HEAD" ]; then
     local delete_branch
-    read "delete_branch?Also delete branch '$branch'? [y/N] "
-    if [[ "$delete_branch" == "y" || "$delete_branch" == "Y" ]]; then
+    printf '%s' "Also delete branch '$branch'? [y/N] "
+    read -r delete_branch
+    if [ "$delete_branch" = "y" ] || [ "$delete_branch" = "Y" ]; then
       if git branch -D "$branch" 2>/dev/null; then
         echo "Branch '$branch' deleted"
       else
@@ -367,23 +392,22 @@ __gw_confirm_and_remove() {
 
 __gw_remove_interactive() {
   local worktrees_dir=$1
-  local -a worktree_list
-  worktree_list=("${(@f)$(__gw_worktree_paths)}")
-  local main_worktree=${worktree_list[1]}
-  local current_worktree
+
+  local main_worktree current_worktree
+  main_worktree=$(__gw_worktree_paths | head -1)
   current_worktree=$(pwd -P)
 
-  local -a fzf_input
+  local fzf_input=()
   local wt_path branch relative_path
-  for wt_path in "${worktree_list[@]}"; do
-    [[ "$wt_path" == "$main_worktree" ]] && continue
-    [[ "$wt_path" == "$current_worktree" ]] && continue
+  while IFS= read -r wt_path; do
+    [ "$wt_path" = "$main_worktree" ] && continue
+    [ "$wt_path" = "$current_worktree" ] && continue
     branch=$(git -C "$wt_path" rev-parse --abbrev-ref HEAD 2>/dev/null)
-    relative_path=${wt_path#$main_worktree/}
+    relative_path=${wt_path#"$main_worktree"/}
     fzf_input+=( "${wt_path}"$'\t'"${relative_path} [${branch}]" )
-  done
+  done < <(__gw_worktree_paths)
 
-  if (( ${#fzf_input[@]} == 0 )); then
+  if [ ${#fzf_input[@]} -eq 0 ]; then
     echo "No worktrees to remove"
     return 1
   fi
@@ -392,7 +416,7 @@ __gw_remove_interactive() {
   preview_script=$(__gw_preview_worktree)
 
   local selected
-  selected=$(print -l -- "${fzf_input[@]}" | fzf \
+  selected=$(printf '%s\n' "${fzf_input[@]}" | fzf \
     --preview="$preview_script" \
     --preview-window="right:60%:wrap" \
     --header="Select worktree to REMOVE (Enter to confirm)" \
@@ -402,7 +426,7 @@ __gw_remove_interactive() {
     --delimiter=$'\t' \
     --with-nth=2)
 
-  if [[ -n "$selected" ]]; then
+  if [ -n "$selected" ]; then
     local worktree_path=${selected%%$'\t'*}
     __gw_confirm_and_remove "$worktree_path"
   fi
@@ -422,7 +446,7 @@ gw() {
   case "$cmd" in
     remove)
       local target=$2
-      if [[ -z "$target" ]]; then
+      if [ -z "$target" ]; then
         __gw_remove_interactive "$worktrees_dir"
         return
       fi
@@ -434,17 +458,17 @@ gw() {
       local worktree_path=""
       local worktree_info
       worktree_info=$(git worktree list | grep "\[$target\]")
-      if [[ -n "$worktree_info" ]]; then
+      if [ -n "$worktree_info" ]; then
         worktree_path=$(echo "$worktree_info" | awk '{print $1}')
       fi
-      if [[ -z "$worktree_path" && -d "$worktrees_dir/$target" ]]; then
+      if [ -z "$worktree_path" ] && [ -d "$worktrees_dir/$target" ]; then
         worktree_path="$worktrees_dir/$target"
       fi
-      if [[ -z "$worktree_path" && -d "$target" ]]; then
+      if [ -z "$worktree_path" ] && [ -d "$target" ]; then
         worktree_path="$target"
       fi
 
-      if [[ -z "$worktree_path" ]]; then
+      if [ -z "$worktree_path" ]; then
         echo "No worktree found for: $target"
         echo "Try 'gw remove' without arguments to select interactively."
         return 1
@@ -455,7 +479,7 @@ gw() {
 
     add)
       local branch_name=$2
-      if [[ -z "$branch_name" ]]; then
+      if [ -z "$branch_name" ]; then
         __gw_select_branch_and_create "$worktrees_dir"
       else
         __gw_create_worktree "$branch_name" "$worktrees_dir"

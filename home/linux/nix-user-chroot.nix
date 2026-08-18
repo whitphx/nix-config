@@ -11,7 +11,9 @@
 # Enabling `myEnv.nixUserChroot.enable` turns on one coherent bundle:
 #   1. the chroot-zsh entry wrapper,
 #   2. an in-pane $SHELL reset (so in-chroot callers don't re-enter it),
-#   3. the host's /usr/bin/tmux (NOT nix's tmux) driving those panes.
+#   3. the host's /usr/bin/tmux (NOT nix's tmux) driving those panes,
+#   4. Home Manager's bash config switched off, because ~/.bashrc has to
+#      stay readable from outside the chroot (see the option below).
 #
 # Why the host's tmux, and why this cannot just be common's tmux behind
 # an `$SSH_CONNECTION` guard (the crux):
@@ -160,6 +162,15 @@ in
     # Use the host's /usr/bin/tmux (installed via the wrapper below), not
     # nix's — see the file header for why.
     programs.tmux.enable = lib.mkForce false;
+
+    # Outside the chroot — which is where bash runs on these hosts, as the
+    # SSH login shell — /nix does not exist, so a Home Manager ~/.bashrc
+    # would be a symlink into an unreachable store path and bash would
+    # silently source nothing. That file is also the bootstrap that puts
+    # ~/.local/bin on PATH, which is the only way `chroot-zsh` is reachable
+    # at all, so it stays hand-written here. Inside the chroot we are in
+    # zsh.
+    programs.bash.enable = lib.mkForce false;
 
     home.activation.installChrootZsh = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       install -m 755 -D ${pkgs.writeText "chroot-zsh" chrootZsh} \

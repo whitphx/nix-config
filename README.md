@@ -168,8 +168,10 @@ These steps target an Ubuntu host where your user has sudo, such as a GPU server
 9. **First activation**:
 
     ```bash
-    nix run home-manager/master -- switch --flake .#<your-user>@<host-nickname>
+    nix run home-manager/master -- switch -b backup --flake .#<your-user>@<host-nickname>
     ```
+
+    `-b backup` renames a pre-existing dotfile that Home Manager wants to own (`~/.bashrc`, `~/.profile`, `~/.bash_profile`) to `<name>.backup` rather than aborting the activation.
 
 10. **Subsequent rebuilds**:
 
