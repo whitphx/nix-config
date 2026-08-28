@@ -5,7 +5,10 @@ in
 {
   homebrew = {
     enable = true;
-    casks = [ "jordanbaird-ice" ];
+    casks = [
+      "jordanbaird-ice"
+      "maccy"
+    ];
   };
 
   system.keyboard = {
