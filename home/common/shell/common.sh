@@ -182,4 +182,12 @@ if [ -d "/data/umihebi0/users/$USER" ]; then
   export HF_HOME="/data/umihebi0/users/$USER/huggingface"
 fi
 
+# The token defaults to $HF_HOME/token, which ties it to whichever
+# volume the block above picked, and a credential that vanishes when a
+# host does not mount that volume surfaces as an auth failure rather
+# than a missing mount. Pin it to the home volume, which every host has.
+# Where HF_HOME is left alone this is the path it would resolve to
+# anyway.
+export HF_TOKEN_PATH="$HOME/.cache/huggingface/token"
+
 unset __shell_name
