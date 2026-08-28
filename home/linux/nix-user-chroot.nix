@@ -42,21 +42,13 @@ let
   homeDir = config.home.homeDirectory;
   chrootZshPath = "${homeDir}/.local/bin/chroot-zsh";
 
-  # chroot-zsh: enter the chroot, then become a login zsh. Forward "$@"
-  # so it serves both roles it is invoked in:
-  #   - interactive login shell — tmux spawns it as default-shell /
-  #     default-command with no args;
-  #   - `$SHELL -c "cmd"` for non-interactive callers (Claude Code's Bash
-  #     tool and its shell-snapshot bootstrap, scripts, git hooks).
-  # A hardcoded `exec zsh -l` would drop the `-c "cmd"`, launch a bare
-  # interactive zsh that never runs the command nor exits, and hang the
-  # caller. (The profileExtra reset below means most `$SHELL -c` traffic
-  # never reaches this wrapper — but the forward keeps it correct if it
-  # does, e.g. before .zprofile has run, or from a non-tmux entry point.)
-  chrootZsh = ''
-    #!/bin/bash
-    exec "${homeDir}/.local/bin/nix-user-chroot" "${cfg.nixDir}" bash -lc 'exec zsh -l "$@"' bash "$@"
-  '';
+  # chroot-zsh: the shell every tmux pane on these hosts starts with.
+  # Lives in shell/chroot-zsh.sh; see that file for what it forwards and
+  # why it falls back instead of exiting.
+  chrootZsh = builtins.replaceStrings
+    [ "@nixDir@" "@chrootBin@" ]
+    [ cfg.nixDir "${homeDir}/.local/bin/nix-user-chroot" ]
+    (builtins.readFile ./shell/chroot-zsh.sh);
 
   # Pin -f to our own config so /etc/tmux.conf cannot bleed in on a
   # shared host. Installed at ~/.local/bin/tmux, ahead of /usr/bin in
