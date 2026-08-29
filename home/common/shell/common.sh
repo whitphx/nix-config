@@ -174,12 +174,14 @@ if command -v micromamba >/dev/null 2>&1; then
 fi
 
 # A single model checkpoint runs to tens of GB, which the NFS home
-# cannot absorb. umihebi is reached over InfiniBand and measures
-# ~660 MB/s against ~105 MB/s for the ethernet-backed volumes, which
-# is what checkpoint load time rides on. Hosts without it mounted keep
-# the default ~/.cache/huggingface.
-if [ -d "/data/umihebi0/users/$USER" ]; then
-  export HF_HOME="/data/umihebi0/users/$USER/huggingface"
+# cannot absorb. umiushi is the volume every host here mounts, which
+# decides this over raw throughput: umihebi is the faster path
+# (InfiniBand, ~660 MB/s against ~105 MB/s for the ethernet-backed
+# volumes) but it is invisible from some of these hosts, and a cache
+# that is only sometimes there is one that silently re-downloads.
+# Hosts with neither keep the default ~/.cache/huggingface.
+if [ -d "/data/umiushi0/users/$USER" ]; then
+  export HF_HOME="/data/umiushi0/users/$USER/huggingface"
 fi
 
 # The token defaults to $HF_HOME/token, which ties it to whichever
