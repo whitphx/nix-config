@@ -1,0 +1,18 @@
+# Minimal base image for binding a rootless Nix store into a Slurm job.
+#
+# Only needed when apptainer will not create the /nix bind point itself,
+# which depends on whether overlay or underlay is available at the site.
+# Build it once on a host that has apptainer, and point
+# $NIX_APPTAINER_IMAGE at the result:
+#
+#   apptainer build ~/.local/share/apptainer/nix-base.sif nix-base.def
+#   export NIX_APPTAINER_IMAGE=~/.local/share/apptainer/nix-base.sif
+#
+# Nothing from Nix is installed here. Everything the shell runs comes
+# from the store bound in at /nix, so this image only has to exist and
+# carry the mount points.
+Bootstrap: docker
+From: ubuntu:24.04
+
+%post
+    mkdir -p /nix /data

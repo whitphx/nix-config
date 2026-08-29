@@ -50,6 +50,13 @@ let
     [ cfg.nixDir "${homeDir}/.local/bin/nix-user-chroot" ]
     (builtins.readFile ./shell/chroot-zsh.sh);
 
+  # apptainer-zsh: the same job on a Slurm node, where AppArmor refuses
+  # the user namespace chroot-zsh needs. See shell/apptainer-zsh.sh.
+  apptainerZsh = builtins.replaceStrings
+    [ "@nixDir@" ]
+    [ cfg.nixDir ]
+    (builtins.readFile ./shell/apptainer-zsh.sh);
+
   # Pin -f to our own config so /etc/tmux.conf cannot bleed in on a
   # shared host. Installed at ~/.local/bin/tmux, ahead of /usr/bin in
   # PATH, so plain `tmux` resolves here and runs the host binary with
@@ -167,6 +174,11 @@ in
     home.activation.installChrootZsh = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       install -m 755 -D ${pkgs.writeText "chroot-zsh" chrootZsh} \
         "${chrootZshPath}"
+    '';
+
+    home.activation.installApptainerZsh = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      install -m 755 -D ${pkgs.writeText "apptainer-zsh" apptainerZsh} \
+        "${homeDir}/.local/bin/apptainer-zsh"
     '';
 
     home.activation.installTmuxConf = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
