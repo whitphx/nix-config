@@ -54,6 +54,11 @@ apptainer_bin=$(command -v apptainer || command -v singularity)
   || fallback "no store there from ${HOSTNAME:-this node}, which probably does not mount that volume"
 
 ap_args=(exec --bind "$nix_dir:/nix")
+# $NIX_SSL_CERT_FILE arrives from the host naming a host path, and a
+# stock image has no CA bundle of its own, so anything doing TLS fails
+# on a certificate file that is not there. The store always has one, and
+# the store is what we just bound in.
+ap_args+=(--env "NIX_SSL_CERT_FILE=@caBundle@" --env "SSL_CERT_FILE=@caBundle@")
 # Apptainer binds $HOME on its own; /data carries the model cache and has
 # to be asked for.
 [ -d /data ] && ap_args+=(--bind /data)

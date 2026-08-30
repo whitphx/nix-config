@@ -53,9 +53,15 @@ let
   # apptainer-zsh: the same job on a Slurm node, where AppArmor refuses
   # the user namespace chroot-zsh needs. See shell/apptainer-zsh.sh.
   apptainerZsh = builtins.replaceStrings
-    [ "@nixDir@" ]
-    [ cfg.nixDir ]
+    [ "@nixDir@" "@caBundle@" ]
+    [ cfg.nixDir "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt" ]
     (builtins.readFile ./shell/apptainer-zsh.sh);
+
+  # srun-zsh: the same job, spelled as one command. See shell/srun-zsh.sh.
+  srunZsh = builtins.replaceStrings
+    [ "@partition@" "@gpus@" ]
+    [ cfg.slurm.partition (toString cfg.slurm.gpus) ]
+    (builtins.readFile ./shell/srun-zsh.sh);
 
   # Pin -f to our own config so /etc/tmux.conf cannot bleed in on a
   # shared host. Installed at ~/.local/bin/tmux, ahead of /usr/bin in
@@ -162,6 +168,23 @@ in
       default = "${homeDir}/.nix";
       description = "Directory bind-mounted onto /nix inside the user chroot.";
     };
+
+    slurm = {
+      partition = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = ''
+          Default partition for `srun-zsh`. Empty leaves the flag off, so
+          the caller has to pass `-p`.
+        '';
+      };
+
+      gpus = lib.mkOption {
+        type = lib.types.int;
+        default = 1;
+        description = "Default GPU count for `srun-zsh`.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -186,6 +209,11 @@ in
     home.activation.installApptainerZsh = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       install -m 755 -D ${pkgs.writeText "apptainer-zsh" apptainerZsh} \
         "${homeDir}/.local/bin/apptainer-zsh"
+    '';
+
+    home.activation.installSrunZsh = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      install -m 755 -D ${pkgs.writeText "srun-zsh" srunZsh} \
+        "${homeDir}/.local/bin/srun-zsh"
     '';
 
     home.activation.installTmuxConf = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
