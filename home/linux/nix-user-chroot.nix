@@ -63,6 +63,13 @@ let
   # our config.
   tmuxWrapper = ''
     #!/bin/bash
+    # Reachable on PATH from places the host binary is not, a container
+    # bound to this home being the one that keeps happening, where the
+    # bare exec failure names a line number instead of the problem.
+    if [ ! -x /usr/bin/tmux ]; then
+      echo "tmux: no /usr/bin/tmux here; this wrapper only drives the host tmux." >&2
+      exit 127
+    fi
     exec /usr/bin/tmux -f "$HOME/.config/tmux/tmux.conf" "$@"
   '';
 

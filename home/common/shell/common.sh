@@ -19,8 +19,16 @@ fi
 
 # GUI terminals can inherit Home Manager's sourced marker alongside the
 # desktop locale, causing its session-variable script to skip these.
-export LANG="en_US.UTF-8"
-export LC_ALL="en_US.UTF-8"
+# Container images generally carry no locales at all, and asking for one
+# that is absent makes every child warn on startup, so fall back to the
+# C variant glibc has built in.
+if locale -a 2>/dev/null | grep -qiE '^en_US\.(utf-?8)$'; then
+  export LANG="en_US.UTF-8"
+  export LC_ALL="en_US.UTF-8"
+else
+  export LANG="C.UTF-8"
+  export LC_ALL="C.UTF-8"
+fi
 
 # $TMUX leaks when a GUI app is launched via `open -a` from a
 # tmux-bound shell — the var propagates to the app, then to
@@ -67,6 +75,11 @@ __shell_auto_tmux() {
   [ -z "${TMUX:-}" ] || return 0
   [ -z "${NO_AUTO_TMUX:-}" ] || return 0
   [ "${TERM_PROGRAM:-}" != "vscode" ] || return 0
+  # A tmux server started inside a Slurm allocation dies with the job,
+  # and inside a container the wrapper on PATH execs a host binary that
+  # is not there, which takes the shell with it.
+  [ -z "${SLURM_JOB_ID:-}" ] || return 0
+  [ -z "${APPTAINER_CONTAINER:-}${SINGULARITY_CONTAINER:-}" ] || return 0
   command -v tmux >/dev/null || return 0
 
   # Reconcile the running tmux server's loaded conf state
