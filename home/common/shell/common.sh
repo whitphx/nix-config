@@ -186,16 +186,18 @@ if command -v micromamba >/dev/null 2>&1; then
   unset _mamba_hook
 fi
 
-# A single model checkpoint runs to tens of GB, which the NFS home
-# cannot absorb. umiushi is the volume every host here mounts, which
-# decides this over raw throughput: umihebi is the faster path
-# (InfiniBand, ~660 MB/s against ~105 MB/s for the ethernet-backed
-# volumes) but it is invisible from some of these hosts, and a cache
-# that is only sometimes there is one that silently re-downloads.
-# Hosts with neither keep the default ~/.cache/huggingface.
-if [ -d "/data/umiushi0/users/$USER" ]; then
-  export HF_HOME="/data/umiushi0/users/$USER/huggingface"
+# A single model checkpoint runs to tens of GB, which an NFS home
+# cannot absorb, so a host can point this at a volume with room (see
+# myEnv.modelCacheDir). Which volume matters more than how fast it is:
+# where $HOME is shared, a cache only some hosts can see is one that
+# silently re-downloads on the others.
+model_cache="@modelCacheDir@"
+# Test the parent, since the volume can be mounted before anything has
+# written a cache into it.
+if [ -n "$model_cache" ] && [ -d "${model_cache%/*}" ]; then
+  export HF_HOME="$model_cache"
 fi
+unset model_cache
 
 # The token defaults to $HF_HOME/token, which ties it to whichever
 # volume the block above picked, and a credential that vanishes when a

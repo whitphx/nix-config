@@ -1,5 +1,15 @@
-{ lib, pkgs, llm-agents, ... }:
+{ config, lib, pkgs, llm-agents, ... }:
+let
+  # The shared half of the shell setup, with the one per-site path in it
+  # filled from config (see model-cache.nix).
+  commonShell = pkgs.writeText "shell-common.sh" (builtins.replaceStrings
+    [ "@modelCacheDir@" ]
+    [ config.myEnv.modelCacheDir ]
+    (builtins.readFile ./shell/common.sh));
+in
 {
+  imports = [ ./model-cache.nix ];
+
   programs.home-manager.enable = true;
 
   programs.git = {
@@ -113,7 +123,7 @@
       # readline already breaks words there.
       WORDCHARS=''${WORDCHARS//\//}
 
-      source ${./shell/common.sh}
+      source ${commonShell}
 
       # `gw` worktree manager (see shell/gw.sh for the implementation).
       source ${./shell/gw.sh}
@@ -137,7 +147,7 @@
       # Timestamps in the history file, as zsh's extended history keeps.
       HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S "
 
-      source ${./shell/common.sh}
+      source ${commonShell}
 
       # `gw` worktree manager (see shell/gw.sh for the implementation).
       source ${./shell/gw.sh}
