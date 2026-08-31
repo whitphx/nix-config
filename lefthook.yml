@@ -1,0 +1,12 @@
+# Install once per clone: `lefthook install`.
+pre-push:
+  commands:
+    private-pushed:
+      run: scripts/check-private-pushed.sh
+
+post-commit:
+  commands:
+    private-pushed:
+      # A warning rather than a failure: committing the bump locally is
+      # fine, and the commit has already happened by the time this runs.
+      run: scripts/check-private-pushed.sh || true

@@ -13,7 +13,9 @@
 # defaults for one invocation.
 
 partition="${SRUN_ZSH_PARTITION:-@partition@}"
-gpus="${SRUN_ZSH_GPUS:-@gpus@}"
+# `-` rather than `:-`, so `SRUN_ZSH_GPUS=` means "ask for no
+# GPUs", which is how you hand the request to --gres instead.
+gpus="${SRUN_ZSH_GPUS-@gpus@}"
 entry="$HOME/.local/bin/apptainer-zsh"
 
 # Everything before `--` is for srun, everything after is for the shell
@@ -41,18 +43,25 @@ command -v srun >/dev/null \
 # Only supply a default the caller did not already give, rather than
 # leaning on srun to let a later flag win.
 given() {
-  local short=$1 long=$2 arg
+  local arg flag
   for arg in "${srun_args[@]}"; do
-    case "$arg" in
-      "$short" | "$short"[!-]* | "$long" | "$long"=*) return 0 ;;
-    esac
+    for flag in "$@"; do
+      case "$flag" in
+        # --flag or --flag=value
+        --*) case "$arg" in "$flag" | "$flag"=*) return 0 ;; esac ;;
+        # -f or -fvalue, where the value cannot itself start with a dash
+        *) case "$arg" in "$flag" | "$flag"[!-]*) return 0 ;; esac ;;
+      esac
+    done
   done
   return 1
 }
 
 args=()
 [ -n "$partition" ] && ! given -p --partition && args+=(-p "$partition")
-[ -n "$gpus" ] && ! given -G --gpus && args+=(-G "$gpus")
+# --gres carries its own GPU request, so a default -G alongside it
+# is a second, conflicting one.
+[ -n "$gpus" ] && ! given -G --gpus --gres && args+=(-G "$gpus")
 # --pty is for the shell case only; with a command to run it would just
 # allocate a terminal nothing reads.
 [ ${#task_args[@]} -eq 0 ] && args+=(--pty)

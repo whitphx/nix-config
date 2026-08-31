@@ -9,6 +9,7 @@ Multi-platform Nix + Home Manager configuration for **macOS** (nix-darwin + Home
 - `home/{common,linux,darwin}/` — Home Manager modules grouped by platform. Public defaults live here.
 - `system/darwin/` — nix-darwin system-level modules (Dock, Finder, keyboard remap, Control Center toggles, etc.). macOS only.
 - `private/` — Git submodule pointing to a separate private repository. Holds per-host configurations and encrypted secrets. Not part of this public repo.
+- `scripts/` — repository hooks, wired up by `lefthook.yml`. Run `lefthook install` once per clone to activate them; without it they simply don't run.
 
 ## Bootstrapping
 

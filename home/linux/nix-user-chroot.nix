@@ -60,7 +60,7 @@ let
   # srun-zsh: the same job, spelled as one command. See shell/srun-zsh.sh.
   srunZsh = builtins.replaceStrings
     [ "@partition@" "@gpus@" ]
-    [ cfg.slurm.partition (toString cfg.slurm.gpus) ]
+    [ cfg.slurm.partition cfg.slurm.gpus ]
     (builtins.readFile ./shell/srun-zsh.sh);
 
   # Pin -f to our own config so /etc/tmux.conf cannot bleed in on a
@@ -180,9 +180,13 @@ in
       };
 
       gpus = lib.mkOption {
-        type = lib.types.int;
-        default = 1;
-        description = "Default GPU count for `srun-zsh`.";
+        type = lib.types.str;
+        default = "1";
+        example = "a100:2";
+        description = ''
+          Default value for `srun-zsh`'s `-G`, which takes Slurm's
+          `[type:]count`. Empty leaves the flag off.
+        '';
       };
     };
   };

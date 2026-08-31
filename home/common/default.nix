@@ -287,7 +287,7 @@
       run-shell ${pkgs.tmuxPlugins.battery}/share/tmux-plugins/battery/battery.tmux
       run-shell ${pkgs.tmuxPlugins.online-status}/share/tmux-plugins/online-status/online_status.tmux
       run-shell ${pkgs.tmuxPlugins.prefix-highlight}/share/tmux-plugins/prefix-highlight/prefix_highlight.tmux
-    '' + lib.optionalString pkgs.stdenv.isDarwin ''
+    '' + lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
 
       # macOS-only paste binding. On Linux there is no portable
       # equivalent of pbpaste, so we rely on the terminal's own paste
