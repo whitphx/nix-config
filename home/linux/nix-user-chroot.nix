@@ -13,7 +13,17 @@
 #   2. an in-pane $SHELL reset (so in-chroot callers don't re-enter it),
 #   3. the host's /usr/bin/tmux (NOT nix's tmux) driving those panes,
 #   4. Home Manager's bash config switched off, because ~/.bashrc has to
-#      stay readable from outside the chroot (see the option below).
+#      stay readable from outside the chroot (see the option below),
+#   5. `apptainer-zsh` and `srun-zsh`, the way into the same environment
+#      on a batch scheduler's compute nodes, where this chroot cannot go
+#      at all (shell/apptainer-zsh.sh has the why).
+#
+# These wrappers are installed into ~/.local/bin, and on a site where
+# $HOME is one NFS export shared by every host, that is the whole
+# distribution mechanism: activating on one host changes the shell every
+# other host starts. It also means a store path chosen here has to be
+# reachable from all of them, and that a broken wrapper breaks hosts this
+# config was never activated on.
 #
 # Why the host's tmux, and why this cannot just be common's tmux behind
 # an `$SSH_CONNECTION` guard (the crux):

@@ -9,6 +9,18 @@
 # and is permitted to set up the same mounts, so the store is bound in
 # through it instead.
 #
+# What the ladder that established this looks like, since the symptom is
+# a bare EACCES and the cause is a policy, not a bug:
+#
+#   unshare -U   true                    # succeeds: creating one is allowed
+#   unshare -Um  true                    # fails: mounts in it are not
+#   unshare -Umr true                    # fails: nor is writing uid_map
+#
+# Ordering is therefore not the issue and no patch to nix-user-chroot
+# helps; writing the map is itself refused. Either apptainer, or an
+# AppArmor profile granting `userns` to the binary, which needs an
+# administrator.
+#
 # Meant to be the task of a job, which leaves every srun flag yours:
 #   srun -p <partition> -G 1 --pty ~/.local/bin/apptainer-zsh
 #   srun -p <partition> -G 1 ~/.local/bin/apptainer-zsh -c 'python train.py'
