@@ -57,9 +57,10 @@ unset -f __shell_drop_stale_tmux
 # shells. `exec` replaces the shell so exiting tmux closes the
 # terminal. Escape hatch: `NO_AUTO_TMUX=1 bash` skips the launch
 # for one-off shells that need to stay bare.
-# Skip inside VSCode's / Cursor's integrated terminal — its UI
-# already provides tab/split management and tmux's status bar
-# just steals vertical space there.
+# Skip inside terminals embedded in another app's UI (VSCode /
+# Cursor's integrated terminal, Orca) — that UI already provides
+# tab/split management, and tmux's status bar just steals
+# vertical space there.
 # The interactive / tty / $CLAUDECODE guards keep the `exec` from
 # hijacking shells that merely *source* this rc to harvest the
 # environment (Claude Code's Bash tool, git hooks, scp): they run
@@ -74,7 +75,9 @@ __shell_auto_tmux() {
   [ -z "${CLAUDECODE:-}" ] || return 0
   [ -z "${TMUX:-}" ] || return 0
   [ -z "${NO_AUTO_TMUX:-}" ] || return 0
-  [ "${TERM_PROGRAM:-}" != "vscode" ] || return 0
+  case "${TERM_PROGRAM:-}" in
+    vscode|Orca) return 0 ;;
+  esac
   # A tmux server started inside a Slurm allocation dies with the job,
   # and inside a container the wrapper on PATH execs a host binary that
   # is not there, which takes the shell with it.
