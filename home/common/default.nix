@@ -389,6 +389,7 @@ in
 
     uv
     micromamba
+    pixi
     ni
 
     actionlint
