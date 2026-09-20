@@ -8,7 +8,7 @@ let
     (builtins.readFile ./shell/common.sh));
 in
 {
-  imports = [ ./model-cache.nix ];
+  imports = [ ./model-cache.nix ./herdr.nix ];
 
   programs.home-manager.enable = true;
 
@@ -400,6 +400,8 @@ in
     # Ships the `hf` / `huggingface-cli` commands; nixpkgs has no
     # standalone CLI attribute for them.
     python3Packages.huggingface-hub
+
+    herdr
 
     (llm-agents.claude-code.override { disableTelemetry = false; })
     llm-agents.codex
