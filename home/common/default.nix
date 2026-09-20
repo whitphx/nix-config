@@ -222,9 +222,8 @@ in
       setw -g pane-base-index 1
 
       # Closing the last window of a session normally detaches the
-      # client; with `exec tmux` in shell init that exits the terminal.
-      # Switch to the most recently active surviving session instead;
-      # only fall back to detach when no other sessions exist.
+      # client. Switch to the most recently active surviving session
+      # instead; only fall back to detach when no other sessions exist.
       set -g detach-on-destroy off
 
       bind r source-file ~/.config/tmux/tmux.conf \; display "Reloaded!"
@@ -303,13 +302,6 @@ in
       # equivalent of pbpaste, so we rely on the terminal's own paste
       # (Cmd-V / Ctrl-Shift-V), which goes through OSC 52.
       bind C-y run "pbpaste | tmux load-buffer - && tmux paste-buffer"
-    '' + ''
-
-      # Load-completed sentinel. zsh init probes this and re-sources
-      # the conf when it's missing — catches any halted load (boot-
-      # race, an earlier line erroring out, etc.) without depending
-      # on a specific option as the canary.
-      set -g @loaded "1"
     '';
   };
   programs.fzf.enable = true;

@@ -33,9 +33,10 @@ fi
 # $TMUX leaks when a GUI app is launched via `open -a` from a
 # tmux-bound shell — the var propagates to the app, then to
 # every child shell it spawns, even though those shells have no
-# real tmux ancestor. Without this guard the auto-attach block
-# below sees $TMUX set and skips, leaving a bare shell. Walk
-# parent PIDs; if no tmux ancestor is found, the value is stale.
+# real tmux ancestor. `fix-term` below would then aim its
+# send-keys at a pane belonging to a session that isn't ours and
+# clear it. Walk parent PIDs; if no tmux ancestor is found, the
+# value is stale.
 __shell_drop_stale_tmux() {
   [ -n "${TMUX:-}" ] || return 0
 
@@ -52,74 +53,6 @@ __shell_drop_stale_tmux() {
 }
 __shell_drop_stale_tmux
 unset -f __shell_drop_stale_tmux
-
-# Auto-attach (or create) a tmux session for new interactive
-# shells. `exec` replaces the shell so exiting tmux closes the
-# terminal. Escape hatch: `NO_AUTO_TMUX=1 bash` skips the launch
-# for one-off shells that need to stay bare.
-# Skip inside terminals embedded in another app's UI (VSCode /
-# Cursor's integrated terminal, Orca) — that UI already provides
-# tab/split management, and tmux's status bar just steals
-# vertical space there.
-# The interactive / tty / $CLAUDECODE guards keep the `exec` from
-# hijacking shells that merely *source* this rc to harvest the
-# environment (Claude Code's Bash tool, git hooks, scp): they run
-# non-interactively or without a tty on stdout, so tmux would
-# replace the process and hang forever, wedging the command.
-__shell_auto_tmux() {
-  case $- in
-    *i*) ;;
-    *) return 0 ;;
-  esac
-  [ -t 1 ] || return 0
-  [ -z "${CLAUDECODE:-}" ] || return 0
-  [ -z "${TMUX:-}" ] || return 0
-  [ -z "${NO_AUTO_TMUX:-}" ] || return 0
-  case "${TERM_PROGRAM:-}" in
-    vscode|Orca) return 0 ;;
-  esac
-  # A tmux server started inside a Slurm allocation dies with the job,
-  # and inside a container the wrapper on PATH execs a host binary that
-  # is not there, which takes the shell with it.
-  [ -z "${SLURM_JOB_ID:-}" ] || return 0
-  [ -z "${APPTAINER_CONTAINER:-}${SINGULARITY_CONTAINER:-}" ] || return 0
-  command -v tmux >/dev/null || return 0
-
-  # Reconcile the running tmux server's loaded conf state
-  # against what's on disk. Two failure modes covered:
-  # - boot-race partial load: the conf parse halts before
-  #   reaching its last line (@loaded != "1"). The conf sets
-  #   @loaded on its last line as a parse-completion marker.
-  # - stale conf after darwin-rebuild switch: the rendered
-  #   conf has changed but the running server still holds
-  #   the previous version's settings. ~/.config/tmux/tmux.conf
-  #   is a symlink whose target changes to a new /nix/store
-  #   path whenever the conf content changes; that target is
-  #   the version identity. Stored in @conf-id here.
-  # When no server is running, start it explicitly so @conf-id
-  # can be set before any client attaches — that avoids a
-  # spurious re-source on the next shell after a clean boot.
-  local expected loaded conf_id need
-  expected=$(readlink ~/.config/tmux/tmux.conf 2>/dev/null)
-  if tmux info >/dev/null 2>&1; then
-    loaded=$(tmux show-options -gv @loaded 2>/dev/null)
-    conf_id=$(tmux show-options -gv @conf-id 2>/dev/null)
-    need=0
-    [ "$loaded" != "1" ] && need=1
-    [ -n "$expected" ] && [ "$expected" != "$conf_id" ] && need=1
-    if [ "$need" = 1 ]; then
-      tmux source-file ~/.config/tmux/tmux.conf 2>/dev/null
-      [ -n "$expected" ] && tmux set-option -g @conf-id "$expected" 2>/dev/null
-    fi
-  else
-    tmux start-server
-    [ -n "$expected" ] && tmux set-option -g @conf-id "$expected" 2>/dev/null
-  fi
-
-  exec tmux new-session -A -s main
-}
-__shell_auto_tmux
-unset -f __shell_auto_tmux
 
 # A TUI killed mid-session never gets to restore the terminal
 # state it changed, so that state persists here: mouse tracking
