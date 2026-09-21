@@ -6,12 +6,16 @@ in
   homebrew = {
     enable = true;
     # Orca ships only as a .dmg and a cask on its own tap; nixpkgs has no
-    # package for it (its `orca` is the GNOME screen reader).
-    taps = [ "stablyai/orca" ];
+    # package for it (its `orca` is the GNOME screen reader). The cask
+    # name has to stay fully qualified: a bare `orca` resolves to
+    # homebrew-cask's own Orca, which is plotly's image exporter, and
+    # that one is disabled for failing Gatekeeper. Homebrew refuses
+    # casks from untrusted third-party taps, hence `trusted`.
+    taps = [ { name = "stablyai/orca"; trusted = true; } ];
     casks = [
       "jordanbaird-ice"
       "maccy"
-      "orca"
+      "stablyai/orca/orca"
     ];
   };
 
