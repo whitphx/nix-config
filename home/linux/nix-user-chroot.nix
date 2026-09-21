@@ -114,8 +114,11 @@ let
 
     bind r source-file ~/.config/tmux/tmux.conf \; display "Reloaded!"
     bind-key c new-window -a
-    bind 3 split-window -h -c "#{pane_current_path}"
-    bind 2 split-window -v -c "#{pane_current_path}"
+    # ../common/default.nix carries the rationale for the four split keys.
+    bind \\ split-window -h -c "#{pane_current_path}"
+    bind | split-window -h -c "#{pane_current_path}"
+    bind - split-window -v -c "#{pane_current_path}"
+    bind _ split-window -v -c "#{pane_current_path}"
     bind-key -n C-S-Left  swap-window -t -1\; select-window -t -1
     bind-key -n C-S-Right swap-window -t +1\; select-window -t +1
 

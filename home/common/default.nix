@@ -228,8 +228,13 @@ in
 
       bind r source-file ~/.config/tmux/tmux.conf \; display "Reloaded!"
 
-      bind 3 split-window -h -c "#{pane_current_path}"
-      bind 2 split-window -v -c "#{pane_current_path}"
+      # \ and | both split side by side, - and _ both stack, so the
+      # split lands whether or not shift is held. herdr carries the
+      # same four in ./herdr.nix.
+      bind \\ split-window -h -c "#{pane_current_path}"
+      bind | split-window -h -c "#{pane_current_path}"
+      bind - split-window -v -c "#{pane_current_path}"
+      bind _ split-window -v -c "#{pane_current_path}"
 
       bind-key -n C-S-Left  swap-window -t -1\; select-window -t -1
       bind-key -n C-S-Right swap-window -t +1\; select-window -t +1

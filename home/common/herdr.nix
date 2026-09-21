@@ -29,11 +29,16 @@ in
     [keys]
     prefix = "${prefix}"
 
-    # Emacs's C-x 0, alongside tmux's `prefix x`. The splits are left on
-    # herdr's own v and minus: C-x 2 and C-x 3 would take two of the
-    # 1..9 tab switches with them, and the digits earn their keep there.
-    # 0 sits outside that range, so it costs nothing.
+    # Emacs's C-x 0, alongside tmux's `prefix x`. 0 sits outside the
+    # 1..9 tab switches, so taking it costs nothing.
     close_pane = [ "prefix+0", "prefix+x" ]
+
+    # The \ and - mnemonic from ./default.nix, next to herdr's own v
+    # and minus. Each split also takes the shifted key, because herdr
+    # reads | as a chord distinct from shift+backslash and binds them
+    # separately; covering both means a held shift never misses.
+    split_vertical = [ "prefix+v", "prefix+backslash", "prefix+|" ]
+    split_horizontal = [ "prefix+minus", "prefix+shift+minus" ]
 
     new_workspace = "prefix+shift+c"
     move_tab_previous = "ctrl+shift+left"
