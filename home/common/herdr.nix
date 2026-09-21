@@ -23,16 +23,10 @@ in
     [keys]
     prefix = "${prefix}"
 
-    # Emacs window keys, by way of the tmux config: C-x 2 splits below,
-    # C-x 3 splits right, C-x 0 deletes the window. tmux's own %, " and
-    # x stay live alongside them. An explicit binding is resolved before
-    # the 1..9 tab switches, the same way `bind 3` wins over tmux's
-    # default select-window; 0 sits outside that range anyway. C-x 1 is
-    # left off, since zoom is a reversible maximize rather than Emacs's
-    # delete-other-windows, and taking prefix+1 would leave the digits
-    # reaching only tabs 4 through 9.
-    split_vertical = [ "prefix+3", "prefix+percent" ]
-    split_horizontal = [ "prefix+2", "prefix+double_quote" ]
+    # Emacs's C-x 0, alongside tmux's `prefix x`. The splits are left on
+    # herdr's own v and minus: C-x 2 and C-x 3 would take two of the
+    # 1..9 tab switches with them, and the digits earn their keep there.
+    # 0 sits outside that range, so it costs nothing.
     close_pane = [ "prefix+0", "prefix+x" ]
 
     new_workspace = "prefix+shift+c"

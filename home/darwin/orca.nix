@@ -2,8 +2,8 @@
 {
   # Orca binds single chords and has no prefix concept, so the tmux and
   # Emacs shape carries over as "Cmd where the prefix used to be": the
-  # second key of each chord is the one the muscle memory holds. Cmd is
-  # also the only safe modifier here. Orca's terminal shortcut policy is
+  # second key of each chord is the one the muscle memory holds. Ctrl is
+  # the one modifier to stay off. Orca's terminal shortcut policy is
   # orca-first, so it consumes a terminal-scoped binding before the pane
   # sees it, and a Ctrl chord would be taken away from the shell, from
   # Emacs, and from the agents running inside.
@@ -18,12 +18,12 @@
   home.file.".orca/keybindings.json".text = builtins.toJSON {
     version = 1;
     keybindings = {
-      # C-x 3, and `bind 3` in the tmux config.
-      "terminal.splitRight" = [ "Mod+3" "Mod+D" ];
-      # C-x 2, and `bind 2`.
-      "terminal.splitDown" = [ "Mod+2" "Mod+Shift+D" ];
-      # C-x 0.
-      "terminal.closePane" = [ "Mod+0" "Mod+W" ];
+      # The literal | and _ of the mnemonic. Shift is what keeps these
+      # clear of Mod+Minus, which is Orca's zoom out: sharing that key
+      # would leave zoom working in one direction only whenever a pane
+      # has focus.
+      "terminal.splitRight" = [ "Mod+Shift+Backslash" "Mod+D" ];
+      "terminal.splitDown" = [ "Mod+Shift+Minus" "Mod+Shift+D" ];
       # C-x o, and tmux's `prefix o`.
       "terminal.focusNextPane" = [ "Mod+O" "Mod+BracketRight" ];
       # tmux's `prefix ;`, which toggles to the last pane. Orca cycles
