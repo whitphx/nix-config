@@ -59,12 +59,21 @@ in
     focus_pane_up = [ "prefix+up", "prefix+ctrl+p" ]
     focus_pane_right = [ "prefix+right", "prefix+ctrl+f" ]
 
-    # The same four directions inside navigate mode, which herdr opens
-    # on `prefix w`. Its keys take no prefix in front of them, so the
-    # Emacs chords sit on bare control and herdr's own h/j/k/l stay.
+    # Navigate mode, which herdr opens on `prefix w`. Its keys take no
+    # prefix in front of them, so the Emacs chords sit on bare control
+    # and herdr's own h/j/k/l stay.
+    #
+    # C-p and C-n move the workspace list rather than pane focus: the
+    # list is the surface where Emacs means "previous line" by them.
+    # One chord cannot do both — herdr keeps the workspace binding and
+    # disables the pane one — so pane up and down stay on k and j here.
+    # Outside navigate mode the prefix keeps the two apart, and
+    # `prefix C-p` / `prefix C-n` still move pane focus.
+    navigate_workspace_up = [ "up", "ctrl+p" ]
+    navigate_workspace_down = [ "down", "ctrl+n" ]
     navigate_pane_left = [ "h", "ctrl+b" ]
-    navigate_pane_down = [ "j", "ctrl+n" ]
-    navigate_pane_up = [ "k", "ctrl+p" ]
+    navigate_pane_down = "j"
+    navigate_pane_up = "k"
     navigate_pane_right = [ "l", "ctrl+f" ]
     resize_pane_left = "prefix+ctrl+left"
     resize_pane_down = "prefix+ctrl+down"
