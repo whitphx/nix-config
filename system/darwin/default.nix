@@ -5,9 +5,13 @@ in
 {
   homebrew = {
     enable = true;
+    # Orca ships only as a .dmg and a cask on its own tap; nixpkgs has no
+    # package for it (its `orca` is the GNOME screen reader).
+    taps = [ "stablyai/orca" ];
     casks = [
       "jordanbaird-ice"
       "maccy"
+      "orca"
     ];
   };
 

@@ -1,5 +1,7 @@
 { lib, pkgs, ... }:
 {
+  imports = [ ./orca.nix ];
+
   home.packages = with pkgs; [
     coreutils
     git-credential-manager
