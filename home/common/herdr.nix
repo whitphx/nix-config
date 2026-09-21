@@ -13,6 +13,12 @@ in
   # Actions left out keep herdr's own default, which already agrees with
   # tmux on c, n, p, x, z, [, ? and the 1..9 tab switches.
   #
+  # Where an action also has an Emacs counterpart, the Emacs chord is
+  # added next to the tmux one rather than replacing it. The layer stops
+  # at the pane border: copy mode's own motion and selection keys are
+  # hard-coded vi-style in herdr and the [keys] table has no entry for
+  # them, so C-p, C-space and friends cannot be bound there.
+  #
   # herdr rewrites this file itself when a setting changes in its UI or
   # when onboarding finishes. Home Manager hands it a read-only
   # /nix/store symlink, so those writes fail with a transient "failed to
@@ -44,10 +50,22 @@ in
     rename_workspace = "prefix+$"
     close_tab = "prefix+ampersand"
     last_pane = "prefix+semicolon"
-    focus_pane_left = "prefix+left"
-    focus_pane_down = "prefix+down"
-    focus_pane_up = "prefix+up"
-    focus_pane_right = "prefix+right"
+    # tmux's arrows, plus Emacs's C-b/C-n/C-p/C-f. The bare letters are
+    # already spoken for: herdr moves between tabs on n and p and
+    # toggles the sidebar on b, so the Emacs half keeps its control
+    # modifier even behind the prefix.
+    focus_pane_left = [ "prefix+left", "prefix+ctrl+b" ]
+    focus_pane_down = [ "prefix+down", "prefix+ctrl+n" ]
+    focus_pane_up = [ "prefix+up", "prefix+ctrl+p" ]
+    focus_pane_right = [ "prefix+right", "prefix+ctrl+f" ]
+
+    # The same four directions inside navigate mode, which herdr opens
+    # on `prefix w`. Its keys take no prefix in front of them, so the
+    # Emacs chords sit on bare control and herdr's own h/j/k/l stay.
+    navigate_pane_left = [ "h", "ctrl+b" ]
+    navigate_pane_down = [ "j", "ctrl+n" ]
+    navigate_pane_up = [ "k", "ctrl+p" ]
+    navigate_pane_right = [ "l", "ctrl+f" ]
     resize_pane_left = "prefix+ctrl+left"
     resize_pane_down = "prefix+ctrl+down"
     resize_pane_up = "prefix+ctrl+up"
