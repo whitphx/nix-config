@@ -49,14 +49,20 @@ fallback() {
   || fallback "no nix-user-chroot binary at $chroot_bin"
 
 # The common failure, and the one worth naming precisely: the store is
-# fine, this host just cannot see the volume it sits on.
-[ -d "$nix_dir/store" ] \
-  || fallback "no store there from ${HOSTNAME:-this host}, which probably does not mount that volume"
+# fine, this host just cannot see the volume it sits on. On a `hard` NFS
+# mount whose server stopped answering, the bare check blocks forever
+# instead of failing, so it runs under a time limit.
+timeout -k 1 5 test -d "$nix_dir/store"
+case $? in
+  0) ;;
+  124|137) fallback "the volume holding the store is not responding from ${HOSTNAME:-this host}" ;;
+  *) fallback "no store there from ${HOSTNAME:-this host}, which probably does not mount that volume" ;;
+esac
 
 # Everything else — a kernel or AppArmor policy refusing the user
 # namespace, a half-written store — only surfaces on a real attempt.
 # Costs about 10ms, against a pane that would otherwise die silently.
-if ! probe=$("$chroot_bin" "$nix_dir" /bin/true 2>&1); then
+if ! probe=$(timeout -k 1 10 "$chroot_bin" "$nix_dir" /bin/true 2>&1); then
   fallback "nix-user-chroot could not enter it" "$probe"
 fi
 
