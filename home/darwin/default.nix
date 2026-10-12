@@ -7,6 +7,15 @@
     git-credential-manager
   ];
 
+  launchd.agents.maccy = {
+    enable = true;
+    config = {
+      ProgramArguments = [ "/usr/bin/open" "-a" "/Applications/Maccy.app" ];
+      RunAtLoad = true;
+      LimitLoadToSessionType = "Aqua";
+    };
+  };
+
   # iTerm2: vendor the whole prefs plist and let iTerm2 load it via
   # its "Load preferences from a custom folder" feature.
   #
