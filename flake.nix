@@ -11,6 +11,10 @@
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # Only for uv: the 0.13.4 security fix is on master but not yet on
+    # nixos-unstable. Drop this input once nixos-unstable has uv >= 0.13.4.
+    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
