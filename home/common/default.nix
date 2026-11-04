@@ -1,4 +1,4 @@
-{ config, lib, pkgs, pkgs-master, llm-agents, ... }:
+{ config, lib, pkgs, llm-agents, ... }:
 let
   # The shared half of the shell setup, with the one per-site path in it
   # filled from config (see model-cache.nix).
@@ -384,7 +384,7 @@ in
     cloudflared
     ngrok
 
-    pkgs-master.uv
+    uv
     micromamba
     pixi
     ni

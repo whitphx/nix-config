@@ -31,7 +31,6 @@ in
       pkgs = mkPkgs meta.system;
       extraSpecialArgs = {
         llm-agents = inputs.llm-agents.packages.${meta.system};
-        pkgs-master = inputs.nixpkgs-master.legacyPackages.${meta.system};
       };
       modules = [
         ../home/common
@@ -70,7 +69,6 @@ in
             backupFileExtension = "backup";
             extraSpecialArgs = {
               llm-agents = inputs.llm-agents.packages.${meta.system};
-              pkgs-master = inputs.nixpkgs-master.legacyPackages.${meta.system};
             };
             users.${meta.username} = {
               imports = [
