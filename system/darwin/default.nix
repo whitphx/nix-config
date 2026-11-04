@@ -11,10 +11,20 @@ in
     # homebrew-cask's own Orca, which is plotly's image exporter, and
     # that one is disabled for failing Gatekeeper. Homebrew refuses
     # casks from untrusted third-party taps, hence `trusted`.
-    taps = [ { name = "stablyai/orca"; trusted = true; } ];
+    taps = [
+      { name = "stablyai/orca"; trusted = true; }
+      # The cask lives in the app's own repo, which isn't named
+      # homebrew-lanterna, so brew can't infer the tap's URL.
+      {
+        name = "peacock0803sz/lanterna";
+        clone_target = "https://github.com/peacock0803sz/Lanterna";
+        trusted = true;
+      }
+    ];
     casks = [
       "jordanbaird-ice"
       "maccy"
+      "peacock0803sz/lanterna/lanterna"
       "stablyai/orca/orca"
     ];
   };
